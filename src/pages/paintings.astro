@@ -1,0 +1,65 @@
+---
+/**
+ * paintings.astro — ready-made / already-painted works:
+ * orderable one-of-a-kind originals (add to cart or request info),
+ * commission process, CTA.
+ */
+import Layout from "../layouts/Layout.astro";
+import AnnouncementBar from "../components/sections/utilitaire_announcement-bar.astro";
+import Nav from "../components/sections/navbars_nav-sticky-simple.astro";
+import Cart from "../components/Cart.astro";
+import Readymade from "../components/ReadymadeGallery.astro";
+import Process from "../components/sections/timeline_process-steps-outcomes.astro";
+import CtaBanner from "../components/sections/bandeau_cta-banner.astro";
+import Footer from "../components/sections/pieds-de-page_footer-bigtype.astro";
+import { SITE } from "../data/site";
+---
+
+<Layout
+  title={`Ready-made paintings — ${SITE.name}`}
+  description="Prefer the artwork without the mess? Order a finished one-of-a-kind imprint painting, or commission your own."
+  lang="en"
+>
+  <Fragment slot="header">
+    <AnnouncementBar />
+    <Nav currentPath="/paintings/" />
+    <Cart />
+  </Fragment>
+
+  <Readymade />
+  <Process
+    titleLead="Want one made"
+    titleEm="for you?"
+    steps={[
+      {
+        title: "Tell us your idea",
+        text: "Send us the size, colors and the story behind it — we sketch the direction together.",
+        image: "/img/palette.jpg",
+        alt: "Pearlescent paint pots in six colors",
+        outcomes: ["Start from the contact form", "Free advice on colors & format"],
+      },
+      {
+        title: "We create it",
+        text: "Our team paints and finishes your canvas with the same pearlescent palette as the kits.",
+        image: "/img/painting-07.jpg",
+        alt: "Pink and cyan pearlescent prints, close up",
+        outcomes: ["Photo approval before shipping", "Signed & sealed"],
+      },
+      {
+        title: "Delivered ready to hang",
+        text: "Tracked worldwide shipping in gift-ready packaging — straight onto your wall.",
+        image: "/img/painting-04.jpg",
+        alt: "Finished canvas wrapped in fairy lights",
+        outcomes: ["Gift-ready box", "Tracking number by email"],
+      },
+    ]}
+  />
+  <CtaBanner
+    eyebrow="Ready-made"
+    title="Rather make your own?"
+    sub="Every piece here started as a kit. Grab yours, choose your colors and sizes, and check out in a minute."
+    cta={{ label: "Shop the kits", href: "/kits/" }}
+  />
+
+  <Footer slot="footer" />
+</Layout>

@@ -1,0 +1,166 @@
+---
+/**
+ * Intégration — section `bandeau_cta-banner` (section NORMALE, non bleed).
+ * Règles Phase 2 appliquées :
+ *   1. `:root` local, reset et Google Fonts supprimés → tokens hérités de la base.
+ *   2. Padding vertical interne RETIRÉ → la section reçoit le rythme `--section-y`
+ *      de la base ; le fond dégradé est posé sur la racine, il couvre donc tout.
+ *   3. Fond uni sombre → DÉGRADÉ SIGNATURE pink→cyan (--accent → --accent-2),
+ *      texte passé en sombre (--bg) pour le contraste sur fond vif.
+ *   4. Effet fill-button conservé : bouton sombre, disque CLAIR (--accent-contrast)
+ *      qui grandit depuis le curseur, texte inversé en sombre.
+ *   5. Reveal cascade `.wf-rev` + IntersectionObserver conservé, fallback
+ *      reduced-motion inclus.
+ *   6. JS SCOPÉ à `.ti-ctaband` (supporte 0 ou n instances sur la page).
+ */
+export interface Props {
+  eyebrow?: string;
+  title?: string;
+  sub?: string;
+  cta?: { label: string; href: string; external?: boolean };
+}
+const {
+  eyebrow = "Everything in the box",
+  title = "Ready to make your imprint?",
+  sub = "Pick your kit, choose your colors and sizes, and check out in a minute. Skin-safe paint, shipped worldwide.",
+  cta = { label: "Shop the kits", href: "/kits/" },
+} = Astro.props;
+---
+
+<section class="ti-ctaband">
+  <div class="cta__inner">
+    <span class="cta__eyebrow wf-rev" style="--d:0s">{eyebrow}</span>
+    <h2 class="cta__title wf-rev" style="--d:.08s">{title}</h2>
+    <p class="cta__sub wf-rev" style="--d:.16s">{sub}</p>
+    <a
+      href={cta.href}
+      class="cta__btn wf-rev"
+      style="--d:.24s"
+      target={cta.external ? "_blank" : undefined}
+      rel={cta.external ? "noopener" : undefined}
+    >
+      {cta.label}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </a>
+  </div>
+</section>
+
+<style>
+  .ti-ctaband {
+    --ease: cubic-bezier(.16,1,.3,1);
+    --easeBack: cubic-bezier(.34,1.56,.64,1);
+    /* Texte SOMBRE sur le dégradé vif — gestion de contraste inversée */
+    --band-fg: var(--bg);
+    --band-muted: color-mix(in srgb, var(--bg) 76%, transparent);
+    --band-line: color-mix(in srgb, var(--bg) 35%, transparent);
+    background: linear-gradient(105deg, var(--accent) 0%, var(--accent-2) 100%);
+    color: var(--band-fg);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  /* Halo décoratif discret */
+  .ti-ctaband::before {
+    content: ""; position: absolute; inset: auto -10% -40% -10%; height: 80%;
+    background: radial-gradient(ellipse at center, color-mix(in srgb, var(--accent-contrast) 14%, transparent), transparent 60%);
+    pointer-events: none;
+  }
+  .cta__inner { position: relative; max-width: 64rem; margin: 0 auto; padding-inline: var(--gutter); }
+
+  .cta__eyebrow {
+    display: inline-block;
+    font-size: var(--step--1); font-weight: 600; letter-spacing: .2em;
+    text-transform: uppercase; color: var(--band-fg);
+    padding: .4rem .9rem; border: 1px solid var(--band-line); border-radius: 99px;
+    margin-bottom: 1.6rem;
+  }
+  .cta__title {
+    font-size: clamp(2.2rem, 5.5vw, 3.6rem); font-weight: 800;
+    letter-spacing: -.03em; line-height: 1.05; text-wrap: balance;
+  }
+  .cta__sub {
+    margin: 1.2rem auto 0; max-width: 36rem;
+    font-size: 1.05rem; line-height: 1.6; color: var(--band-muted);
+  }
+
+  /* FILLBTN — bouton sombre ; disque clair qui grandit depuis le curseur */
+  .cta__btn {
+    position: relative; isolation: isolate; overflow: hidden;
+    display: inline-flex; align-items: center; gap: .55rem;
+    margin-top: 2.2rem; padding: .95rem 1.6rem; border-radius: calc(var(--radius) * .6);
+    background: var(--bg); color: var(--fg);
+    font-size: .95rem; font-weight: 600; text-decoration: none;
+    transition: transform .25s var(--ease), box-shadow .25s var(--ease), color .35s var(--ease);
+  }
+  .cta__btn::before {
+    content: ""; position: absolute; z-index: -1;
+    top: var(--y, 50%); left: var(--x, 50%); width: 0; height: 0; border-radius: 50%;
+    background: var(--accent-contrast); transform: translate(-50%, -50%);
+    transition: width .5s var(--ease), height .5s var(--ease);
+  }
+  .cta__btn svg { width: 1rem; height: 1rem; transition: transform .25s var(--ease); }
+  @media (hover: hover) and (pointer: fine) {
+    .cta__btn:hover {
+      color: var(--bg); transform: translateY(-1px);
+      box-shadow: 0 14px 30px -16px var(--shadow-color);
+    }
+    .cta__btn:hover::before { width: 340px; height: 340px; }
+    .cta__btn:hover svg { transform: translateX(3px); }
+  }
+
+  /* REVEAL — montée + fondu en cascade à l'entrée à l'écran */
+  .wf-js .wf-rev {
+    opacity: 0; transform: translateY(26px);
+    transition: opacity .7s var(--ease), transform .8s var(--easeBack);
+    transition-delay: var(--d, 0s);
+  }
+  .wf-js .wf-rev.is-in { opacity: 1; transform: none; }
+
+  /* --- Responsive ------------------------------------------------------------ */
+  @media (max-width: 560px) {
+    .cta__btn { width: 100%; justify-content: center; }
+  }
+
+  /* --- Accessibilité ------------------------------------------------------------ */
+  .ti-ctaband :focus-visible { outline: 2px solid var(--bg); outline-offset: 3px; border-radius: .4rem; }
+  @media (prefers-reduced-motion: reduce) {
+    .ti-ctaband * { transition: none !important; }
+    .cta__btn::before { display: none; } /* pas de remplissage animé */
+    .wf-js .wf-rev { opacity: 1 !important; transform: none !important; }
+  }
+</style>
+
+<script>
+  document.documentElement.classList.add("wf-js");
+  (function () {
+    var fine = window.matchMedia("(hover:hover) and (pointer:fine)").matches;
+    var reduce = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+    [].forEach.call(document.querySelectorAll(".ti-ctaband"), function (band: HTMLElement) {
+      /* REVEAL — cascade à l'entrée à l'écran */
+      var els = [].slice.call(band.querySelectorAll(".wf-rev"));
+      if (reduce || !("IntersectionObserver" in window)) {
+        els.forEach(function (el: Element) { el.classList.add("is-in"); });
+      } else {
+        var io = new IntersectionObserver(function (entries, obs) {
+          entries.forEach(function (e) {
+            if (e.isIntersecting) { e.target.classList.add("is-in"); obs.unobserve(e.target); }
+          });
+        }, { threshold: .2 });
+        els.forEach(function (el: Element) { io.observe(el); });
+      }
+
+      /* FILLBTN — pose --x/--y au point exact du curseur */
+      if (!fine || reduce) return;
+      [].forEach.call(band.querySelectorAll(".cta__btn"), function (btn: HTMLElement) {
+        function pos(e: MouseEvent) {
+          var r = btn.getBoundingClientRect();
+          btn.style.setProperty("--x", (e.clientX - r.left) + "px");
+          btn.style.setProperty("--y", (e.clientY - r.top) + "px");
+        }
+        btn.addEventListener("mouseenter", pos);
+        btn.addEventListener("mousemove", pos);
+      });
+    });
+  })();
+</script>

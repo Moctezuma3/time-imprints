@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- lib:meta -->
+<meta name="lib:id" content="bandeau_area-banner-cities">
+<meta name="lib:groupe" content="02-corps">
+<meta name="lib:categorie" content="bandeau">
+<meta name="lib:intention" content="ancrage-local">
+<meta name="lib:role" content="contact-localisation">
+<meta name="lib:placement" content="section">
+<meta name="lib:niveau" content="1">
+<meta name="lib:titre" content="Bandeau « on intervient à… »">
+<meta name="lib:tags" content="CSS pur, villes, defilant">
+<meta name="lib:utilite" content="Bandeau accrocheur listant les villes desservies en gros, avec un ruban de noms qui défile en boucle (pause au survol). Affirme la couverture locale. CSS pur.">
+<meta name="lib:showcase" content="oui">
+<meta name="lib:secteurs" content="local, artisanat, btp">
+<meta name="lib:slots" content="titre:titre:court; zones:puces:5-20">
+<meta name="lib:anatomie" content="base:bandeau défilant de villes, en-tête + ruban de 6 villes; layout:section sombre, en-tête à gauche (max 72rem) au-dessus du ruban pleine largeur; surtitre:eyebrow Couverture locale en accent; titre:h2 On intervient à…; sous-titre:phrase d-accroche grise sous le titre; items:6 villes (Lausanne, Morges, Nyon, Vevey, Renens, Pully) en très gros (jusqu-à 3rem, poids 800), 2 mises en accent (Morges, Renens via is-hot); separateur:petit point rond accent entre chaque ville; animation:marquee horizontal infini droite vers gauche (translateX -50 pourcent), boucle 30s linéaire, liste dupliquée 2 fois pour boucle sans couture, masque en fondu sur les bords; entree:en-tête et ruban apparaissent en fondu-montée 0.7s décalés au chargement; hover:pause du défilement au survol (pointeur fin seulement); responsive:gap et padding réduits sous 560px; accessibilité:ruban aria-hidden, reduced-motion arrête l-animation et passe les villes en multi-lignes centrées">
+<!-- /lib:meta -->
+<title>Bandeau « on intervient à… »</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- ==========================================================================
+     STYLE — Zone d'intervention · Bandeau « on intervient à… » : titre + ruban
+     de villes défilant (pause au survol). 100 % CSS, un seul accent.
+     ========================================================================== -->
+<style>
+  /* 1. Tokens ------------------------------------------------------------ */
+  :root{
+    --bg:#16181d;--surface:#1d2027;--fg:#f4f4f0;--muted:#9aa0ad;--line:#2c2f37;
+    --accent:#3b6ef5;
+    --maxw:72rem;
+    --font:"Outfit",ui-sans-serif,system-ui,-apple-system,sans-serif;
+    --ease:cubic-bezier(.16,1,.3,1);
+  }
+  /* 2. Reset ------------------------------------------------------------- */
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  img{display:block;max-width:100%}
+  body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;overflow-x:hidden}
+  /* 3. Layout ------------------------------------------------------------ */
+  .band{padding:clamp(3rem,8vh,5rem) 0}
+  .band__head{max-width:var(--maxw);margin:0 auto 2rem;padding:0 clamp(1.4rem,5vw,3rem)}
+  .marq{display:flex;overflow:hidden;
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
+            mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+  .marq__track{display:flex;flex:none;align-items:center;gap:1.6rem;padding-right:1.6rem;
+    animation:scroll 30s linear infinite;white-space:nowrap}
+  .city{font-size:clamp(1.8rem,4.5vw,3rem);font-weight:800;letter-spacing:-.03em;color:var(--line)}
+  .city.is-hot{color:var(--accent)}
+  .dot{width:.5rem;height:.5rem;border-radius:50%;background:var(--accent);flex:none}
+  /* 4. Typographie ------------------------------------------------------- */
+  .eyebrow{font-size:.78rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  .band__head h2{font-size:clamp(1.6rem,3.4vw,2.3rem);font-weight:800;letter-spacing:-.025em;margin-top:.4rem}
+  .band__head p{color:var(--muted);margin-top:.5rem;max-width:40rem}
+  /* 5. Accent / hover ---------------------------------------------------- */
+  @media (hover:hover) and (pointer:fine){
+    .marq:hover .marq__track{animation-play-state:paused}
+  }
+  @keyframes scroll{to{transform:translateX(-50%)}}
+  /* 6. Responsive -------------------------------------------------------- */
+  @media (max-width:560px){.marq__track{gap:1rem;padding-right:1rem}}
+  /* 7. Accessibilité ----------------------------------------------------- */
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}
+    .marq__track{flex-wrap:wrap;white-space:normal;justify-content:center}}
+
+  /* --- Animation d'entrée au chargement (en-tête + ruban) --------------- */
+  /* NB : on anime le CONTENEUR .marq, pas la piste .marq__track qui défile.*/
+  @keyframes secIn{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+  .band__head{animation:secIn .7s cubic-bezier(.16,1,.3,1) .05s backwards}
+  .marq{animation:secIn .7s cubic-bezier(.16,1,.3,1) .2s backwards}
+  @media (prefers-reduced-motion:reduce){.band__head,.marq{animation:none}}
+</style>
+</head>
+<body>
+
+<!-- ==========================================================================
+     STRUCTURE — bandeau « on intervient à… ». La liste de villes est dupliquée
+     pour la boucle. Remplacez par vos localités.
+     ========================================================================== -->
+<section class="band" aria-labelledby="t">
+  <div class="band__head">
+    <span class="eyebrow">Couverture locale</span>
+    <h2 id="t" data-slot="titre">On intervient à…</h2>
+    <p>Et dans toutes les communes alentour. Votre ville n'est pas listée ? Demandez, on s'organise.</p>
+  </div>
+
+  <div class="marq" aria-hidden="true">
+    <div class="marq__track" data-slot="zones">
+      <span class="city" data-slot-item>Lausanne</span><i class="dot"></i><span class="city is-hot">Morges</span><i class="dot"></i><span class="city">Nyon</span><i class="dot"></i><span class="city">Vevey</span><i class="dot"></i><span class="city is-hot">Renens</span><i class="dot"></i><span class="city">Pully</span><i class="dot"></i>
+      <span class="city">Lausanne</span><i class="dot"></i><span class="city is-hot">Morges</span><i class="dot"></i><span class="city">Nyon</span><i class="dot"></i><span class="city">Vevey</span><i class="dot"></i><span class="city is-hot">Renens</span><i class="dot"></i><span class="city">Pully</span><i class="dot"></i>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

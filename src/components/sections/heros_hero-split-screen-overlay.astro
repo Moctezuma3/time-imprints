@@ -1,0 +1,195 @@
+---
+/**
+ * DÉMO d'intégration — section `heros_hero-split-screen-overlay` posée sur
+ * l'échafaudage selon les règles de Phase 2 :
+ *   1. `:root` local SUPPRIMÉ → --font, --accent, --radius héritent de la base.
+ *   2. Reset global de la section SUPPRIMÉ → celui du layout s'applique.
+ *   3. CSS mis dans un <style> scopé Astro → aucune collision (.btn, .hero…).
+ *   4. Palette re-tokenisée : les couleurs codées en dur (rgba blanc) qui
+ *      supposaient un fond sombre sont passées aux tokens du site (variante claire).
+ *   5. Padding vertical interne retiré ; section marquée data-bleed (plein écran).
+ *   6. Copy injectée dans les slots ; image = panneau neutre en attendant le WebP.
+ */
+export interface Props {
+  titre?: string;
+  accroche?: string;
+  cta?: { label: string; href: string }[];
+  image?: { src: string; alt: string }; // WebP servi depuis /public/images (slot visuel)
+}
+const {
+  titre = "Voici une vraie section, pliée aux règles de la base",
+  accroche = "Ce héros venait avec son propre fond sombre et son accent orange. Une fois intégré, il adopte la police, l'accent, le rayon et l'échelle de l'échafaudage.",
+  cta = [
+    { label: "Bouton primaire", href: "#suite" },
+    { label: "Bouton secondaire", href: "#suite" },
+  ],
+  image,
+} = Astro.props;
+---
+
+<section class="hero" data-bleed>
+  <div class="hero__text">
+    <div class="hero__inner">
+      <span class="hero__eyebrow">Section intégrée · démo</span>
+      <h1 class="hero__title" data-slot="titre">{titre}</h1>
+      <p class="hero__sub" data-slot="accroche">{accroche}</p>
+
+      <div class="hero__cta">
+        {cta.map((c, i) => (
+          <a class={`btn ${i === 0 ? "btn--primary" : "btn--ghost"}`} href={c.href} data-slot="cta">
+            {c.label}
+            {i === 0 && (
+              <svg class="btn__arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            )}
+          </a>
+        ))}
+      </div>
+
+      <div class="hero__trust">
+        <div>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+          Police héritée de la base
+        </div>
+        <div>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+          Accent hérité de la base
+        </div>
+        <div>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+          Rayon = 0 (comme la base)
+        </div>
+        <div>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+          CSS scopé, zéro collision
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero__media" aria-hidden={image ? undefined : "true"}>
+    <div class="hero__media-inner">
+      {image && <img src={image.src} alt={image.alt} loading="eager" fetchpriority="high" data-slot="visuel" />}
+    </div>
+  </div>
+
+  <a href="#suite" class="hero__scroll" aria-label="Faire défiler vers la suite">
+    Découvrir
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+  </a>
+</section>
+
+<style>
+  /* Vars LOCALES conservées (structure + dérivées de l'accent hérité).
+     PAS de --bg/--fg/--accent/--font/--radius ici → ils viennent de la base. */
+  .hero {
+    --bg-2: var(--surface);
+    --maxw: 1480px;
+    --gutter: clamp(1rem, 3vw, 2rem);
+    --ease-out: cubic-bezier(.16, 1, .3, 1);
+    --hero-image: linear-gradient(135deg, var(--surface), color-mix(in srgb, var(--accent) 16%, var(--surface)));
+
+    position: relative;
+    min-height: 100dvh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+    color: var(--fg);
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .hero a { text-decoration: none; }
+
+  .hero__text { position: relative; display: flex; align-items: center; padding: clamp(3rem, 8vh, 6rem) var(--gutter); }
+  .hero__inner { width: 100%; max-width: calc(var(--maxw) / 2); margin-left: auto; padding-right: clamp(1rem, 4vw, 3rem); }
+
+  .hero__media { position: relative; height: 100%; overflow: hidden; clip-path: inset(0 0 0 100%); animation: mediaReveal .9s var(--ease-out) .15s both; }
+  @keyframes mediaReveal { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 0 0 0); } }
+  .hero__media-inner { position: absolute; inset: -14px; will-change: transform; transition: transform .5s var(--ease-out); animation: mediaZoom .9s var(--ease-out) .15s both; background: var(--hero-image) center/cover no-repeat; }
+  .hero__media-inner img { width: 100%; height: 100%; object-fit: cover; }
+  @keyframes mediaZoom { from { transform: scale(1.08); } to { transform: scale(1); } }
+
+  /* Eyebrow : fond blanc translucide d'origine → surface tokenisée */
+  .hero__eyebrow {
+    display: inline-flex; align-items: center; gap: .6rem;
+    font-size: .78rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--fg); background: var(--surface);
+    padding: .5rem 1rem; border-radius: 999px; border: 1px solid var(--line);
+    margin-bottom: 1.8rem;
+  }
+  .hero__eyebrow::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); animation: pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 4px var(--accent-soft); } 50% { box-shadow: 0 0 0 8px transparent; } }
+
+  .hero__title { font-size: clamp(2.1rem, 3.8vw, 3.8rem); font-weight: 700; line-height: 1.08; letter-spacing: -.025em; margin-bottom: 1.4rem; max-width: 18ch; color: var(--fg); }
+  .hero__title em { font-style: normal; color: var(--accent); white-space: nowrap; }
+  .hero__title .w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .14em; margin-bottom: -.14em; }
+  .hero__title .w__in { display: inline-block; transform: translateY(115%); animation: wordUp .9s var(--ease-out) both; }
+  @keyframes wordUp { to { transform: translateY(0); } }
+  .hero__sub { font-size: clamp(1rem, 1.2vw, 1.18rem); color: var(--muted); margin-bottom: 2.2rem; max-width: 46ch; line-height: 1.6; }
+
+  .hero__cta { display: flex; flex-wrap: wrap; gap: .7rem; margin-bottom: 2.4rem; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: .55rem; font: inherit; font-weight: 600; font-size: .98rem; padding: .95rem 1.5rem; border-radius: var(--radius); border: 1px solid transparent; cursor: pointer; transition: transform .25s var(--ease-out), background .25s var(--ease-out), border-color .25s var(--ease-out); white-space: nowrap; }
+  .btn--primary { background: var(--accent); color: var(--accent-contrast); }
+  .btn--primary:hover { background: var(--accent-dark); transform: translateY(-1px); }
+  .btn--ghost { background: transparent; color: var(--fg); border-color: var(--line); }
+  .btn--ghost:hover { border-color: var(--fg); }
+  .btn__arrow { display: inline-block; flex-shrink: 0; transition: transform .35s var(--ease-out); }
+  .btn--primary:hover .btn__arrow { transform: translateX(4px); }
+
+  /* Trust : couleurs blanches d'origine → tokens */
+  .hero__trust { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem 1.6rem; padding-top: 1.6rem; border-top: 1px solid var(--line); max-width: 520px; }
+  .hero__trust > div { display: flex; align-items: center; gap: .55rem; font-size: .9rem; color: var(--fg); font-weight: 500; }
+  .hero__trust svg { flex-shrink: 0; color: var(--accent); }
+
+  .hero__scroll { position: absolute; bottom: 1.5rem; left: calc(25% - 1rem); transform: translateX(-50%); color: var(--muted); font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; display: flex; flex-direction: column; align-items: center; gap: .4rem; font-weight: 500; pointer-events: none; z-index: 2; }
+  .hero__scroll svg { animation: scrollHint 2.2s ease-in-out infinite; }
+  @keyframes scrollHint { 0%, 100% { transform: translateY(0); opacity: .5; } 50% { transform: translateY(6px); opacity: 1; } }
+
+  @media (max-width: 960px) {
+    .hero { grid-template-columns: 1fr; grid-template-rows: 42vh 1fr; min-height: 100dvh; }
+    .hero__media { order: -1; height: 100%; }
+    .hero__inner { max-width: none; margin: 0 auto; padding-right: 0; }
+    .hero__text { padding: clamp(2.5rem, 6vh, 4rem) var(--gutter) clamp(4rem, 8vh, 5rem); }
+    .hero__scroll { display: none; }
+  }
+  @media (max-width: 540px) { .hero__trust { grid-template-columns: 1fr; } }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: translateY(0); } }
+  .hero__eyebrow { animation: fadeUp .8s var(--ease-out) .06s backwards; }
+  .hero__sub { animation: fadeUp .8s var(--ease-out) .42s backwards; }
+  .hero__cta { animation: fadeUp .8s var(--ease-out) .54s backwards; }
+  .hero__trust { animation: fadeUp .8s var(--ease-out) .66s backwards; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__title .w__in { transform: none; animation: none; }
+    .hero__media { clip-path: none; animation: none; }
+    .hero__media-inner { transform: none; animation: none; }
+    .hero__eyebrow::before, .hero__scroll svg { animation: none; }
+    .hero__eyebrow, .hero__sub, .hero__cta, .hero__trust { animation: none; }
+  }
+</style>
+
+<script>
+  // Titre révélé mot à mot (masque). JS natif d'origine, préservé.
+  (function () {
+    const title = document.querySelector(".hero__title");
+    const rm = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+    if (!title || rm) return;
+    let i = 0;
+    const frag = document.createDocumentFragment();
+    function words(text: string, isEm: boolean) {
+      text.split(/(\s+)/).forEach(function (tok) {
+        if (tok === "") return;
+        if (/^\s+$/.test(tok)) { frag.appendChild(document.createTextNode(" ")); return; }
+        const w = document.createElement("span"); w.className = "w" + (isEm ? " w--em" : "");
+        const inner = document.createElement("span"); inner.className = "w__in"; inner.textContent = tok;
+        inner.style.animationDelay = (0.12 + i * 0.055) + "s"; i++;
+        w.appendChild(inner); frag.appendChild(w);
+      });
+    }
+    [].forEach.call(title.childNodes, function (n: ChildNode) {
+      if (n.nodeType === 3) words(n.textContent || "", false);
+      else words(n.textContent || "", (n as HTMLElement).tagName === "EM");
+    });
+    title.textContent = ""; title.appendChild(frag);
+  })();
+</script>

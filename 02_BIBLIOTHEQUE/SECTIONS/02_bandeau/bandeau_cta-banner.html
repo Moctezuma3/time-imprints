@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>document.documentElement.classList.add('wf-js')</script>
+<!-- lib:meta -->
+<meta name="lib:id" content="bandeau_cta-banner">
+<meta name="lib:groupe" content="02-corps">
+<meta name="lib:categorie" content="bandeau">
+<meta name="lib:intention" content="conversion-footer">
+<meta name="lib:role" content="cta">
+<meta name="lib:placement" content="section">
+<meta name="lib:niveau" content="2">
+<meta name="lib:titre" content="Bandeau pleine largeur">
+<meta name="lib:tags" content="JS natif, sombre, conversion, fill-button, reveal">
+<meta name="lib:utilite" content="Fond couleur d'accent, eyebrow + gros titre + sous-titre + un seul bouton. Le bouton se remplit d'un disque qui grandit depuis le curseur (texte inversé) ; le contenu monte en cascade à l'entrée à l'écran. Conversion maximale, à mettre en fin de page. JS natif (sans dépendance).">
+<meta name="lib:showcase" content="oui">
+<meta name="lib:secteurs" content="polyvalent">
+<meta name="lib:slots" content="titre:titre:court; sous-titre:ligne:court; cta:cta:1-2">
+<meta name="lib:anatomie" content="base:1 eyebrow, 1 titre, 1 sous-titre, 1 bouton; layout:bannière pleine largeur centrée, fond sombre, halo radial discret; surtitre:eyebrow en pilule contour, majuscules; titre:éditorial très grand (clamp 2.2-3.6rem); sous-titre:1 ligne courte atténuée; cta:1 seul bouton plein clair avec flèche; hover:le bouton se remplit d'un disque sombre depuis le point du curseur, texte inversé, légère élévation, flèche qui glisse; animation:contenu en cascade montée plus fondu à l'entrée à l'écran; responsive:bouton pleine largeur sous 560px">
+<!-- /lib:meta -->
+<title>Bandeau pleine largeur</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- ==========================================================================
+     STYLE — CTA 01 · Bannière pleine largeur, fond couleur d'accent, titre
+     éditorial + sous-titre + un seul bouton primaire. Conversion maximale
+     en fin de page. 100 % CSS.
+     ========================================================================== -->
+<style>
+  /* --- 1. TOKENS ---------------------------------------------------------- */
+  :root{
+    --bg:#16181d;                /* fond bannière (sombre par défaut) */
+    --fg:#f4f4f0;
+    --muted:rgba(244,244,240,.7);
+    --btn-bg:#f4f4f0;
+    --btn-fg:#16181d;
+    --line:rgba(244,244,240,.18);
+    --font:"Outfit",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --maxw:64rem;
+    --ease:cubic-bezier(.16,1,.3,1);
+    --easeBack:cubic-bezier(.34,1.56,.64,1);
+  }
+
+  /* --- 2. RESET ----------------------------------------------------------- */
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  a{text-decoration:none;color:inherit}
+
+  /* --- 3. LAYOUT ---------------------------------------------------------- */
+  .cta{
+    background:var(--bg);color:var(--fg);font-family:var(--font);
+    padding:clamp(4rem,12vh,8rem) clamp(1.4rem,5vw,4rem);
+    text-align:center;position:relative;overflow:hidden;
+  }
+  /* halo décoratif discret */
+  .cta::before{
+    content:"";position:absolute;inset:auto -10% -40% -10%;height:80%;
+    background:radial-gradient(ellipse at center,rgba(244,244,240,.06),transparent 60%);
+    pointer-events:none}
+  .cta__inner{position:relative;max-width:var(--maxw);margin:0 auto}
+
+  .cta__eyebrow{display:inline-block;
+    font-size:.78rem;font-weight:500;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--muted);
+    padding:.4rem .9rem;border:1px solid var(--line);border-radius:99px;
+    margin-bottom:1.6rem}
+  .cta__title{font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:700;
+    letter-spacing:-.03em;line-height:1.05}
+  .cta__sub{margin:1.2rem auto 0;max-width:36rem;
+    font-size:1.05rem;line-height:1.6;color:var(--muted)}
+
+  .cta__btn{
+    position:relative;isolation:isolate;overflow:hidden;
+    display:inline-flex;align-items:center;gap:.55rem;
+    margin-top:2.2rem;padding:.95rem 1.6rem;border-radius:.6rem;
+    background:var(--btn-bg);color:var(--btn-fg);
+    font-size:.95rem;font-weight:600;
+    transition:transform .25s var(--ease),box-shadow .25s var(--ease),color .35s var(--ease)}
+  /* FILLBTN — disque sombre qui grandit depuis le curseur, texte inversé en clair */
+  .cta__btn::before{content:"";position:absolute;z-index:-1;
+    top:var(--y,50%);left:var(--x,50%);width:0;height:0;border-radius:50%;
+    background:var(--bg);transform:translate(-50%,-50%);
+    transition:width .5s var(--ease),height .5s var(--ease)}
+  .cta__btn svg{width:1rem;height:1rem;
+    transition:transform .25s var(--ease)}
+  @media (hover:hover) and (pointer:fine){
+    .cta__btn:hover{color:var(--fg);transform:translateY(-1px);
+      box-shadow:0 14px 30px -16px rgba(0,0,0,.5)}
+    .cta__btn:hover::before{width:340px;height:340px}
+    .cta__btn:hover svg{transform:translateX(3px)}
+  }
+
+  /* REVEAL — montée + fondu en cascade à l'entrée à l'écran */
+  .wf-js .wf-rev{opacity:0;transform:translateY(26px);
+    transition:opacity .7s var(--ease),transform .8s var(--easeBack);
+    transition-delay:var(--d,0s)}
+  .wf-js .wf-rev.is-in{opacity:1;transform:none}
+
+  /* --- 4. TYPOGRAPHIE ----------------------------------------------------- */
+
+  /* --- 5. ACCENT ---------------------------------------------------------- */
+  /* --bg + --btn-bg pilotent l'identité (clair/sombre, accent coloré, etc.) */
+
+  /* --- 6. RESPONSIVE ------------------------------------------------------ */
+  @media (max-width:560px){
+    .cta__btn{width:100%;justify-content:center}
+  }
+
+  /* --- 7. ACCESSIBILITÉ --------------------------------------------------- */
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important}
+    .cta__btn::before{display:none}              /* pas de remplissage animé */
+    .wf-js .wf-rev{opacity:1!important;transform:none!important}
+  }
+</style>
+</head>
+<body>
+
+<!-- ==========================================================================
+     STRUCTURE — contenu à personnaliser
+     ========================================================================== -->
+<section class="cta">
+  <div class="cta__inner">
+    <span class="cta__eyebrow wf-rev" style="--d:0s">Passer à l'action</span>
+    <h2 class="cta__title wf-rev" data-slot="titre" style="--d:.08s">Un titre fort, une promesse claire.</h2>
+    <p class="cta__sub wf-rev" data-slot="sous-titre" style="--d:.16s">Quelques mots pour rappeler la valeur, la simplicité de démarrer, l'absence de friction.</p>
+    <a href="#" class="cta__btn wf-rev" data-slot="cta" style="--d:.24s">
+      Démarrer maintenant
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </a>
+  </div>
+</section>
+
+<!-- SCRIPT — révélation au scroll + remplissage du bouton depuis le curseur -->
+<script>
+  (function () {
+    /* REVEAL — cascade à l'entrée à l'écran */
+    var els = [].slice.call(document.querySelectorAll('.wf-rev'));
+    if (!('IntersectionObserver' in window) || !els.length) {
+      els.forEach(function (el) { el.classList.add('is-in'); });
+    } else {
+      var io = new IntersectionObserver(function (entries, obs) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('is-in'); obs.unobserve(e.target); }
+        });
+      }, { threshold: .2 });
+      els.forEach(function (el) { io.observe(el); });
+    }
+
+    /* FILLBTN — pose --x/--y au point exact du curseur (souris fine, hors reduced-motion) */
+    if (!window.matchMedia('(hover:hover) and (pointer:fine)').matches) return;
+    if (window.matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+    [].forEach.call(document.querySelectorAll('.cta__btn'), function (btn) {
+      function pos(e) {
+        var r = btn.getBoundingClientRect();
+        btn.style.setProperty('--x', (e.clientX - r.left) + 'px');
+        btn.style.setProperty('--y', (e.clientY - r.top) + 'px');
+      }
+      btn.addEventListener('mouseenter', pos);
+      btn.addEventListener('mousemove', pos);
+    });
+  })();
+</script>
+
+</body>
+</html>

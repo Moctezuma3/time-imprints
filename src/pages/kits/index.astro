@@ -1,0 +1,34 @@
+---
+/**
+ * kits/index.astro — full catalogue: filterable grid, kit-finder quiz, FAQ.
+ */
+import Layout from "../../layouts/Layout.astro";
+import AnnouncementBar from "../../components/sections/utilitaire_announcement-bar.astro";
+import Nav from "../../components/sections/navbars_nav-sticky-simple.astro";
+import Cart from "../../components/Cart.astro";
+import ProductsGrid from "../../components/sections/grid_products-filter-category.astro";
+import KitQuiz from "../../components/sections/quiz-configurateur_configurator-quizz.astro";
+import Faq from "../../components/sections/faq_faq-2col.astro";
+import CtaBanner from "../../components/sections/bandeau_cta-banner.astro";
+import Footer from "../../components/sections/pieds-de-page_footer-bigtype.astro";
+import { SITE } from "../../data/site";
+---
+
+<Layout
+  title={`All kits — ${SITE.name}`}
+  description="Five paint-imprint kits from 15 €: hands, kisses, hugs and body prints on canvas or t-shirts. Skin-safe paint, worldwide shipping."
+  lang="en"
+>
+  <Fragment slot="header">
+    <AnnouncementBar />
+    <Nav currentPath="/kits/" />
+    <Cart />
+  </Fragment>
+
+  <ProductsGrid />
+  <KitQuiz />
+  <Faq />
+  <CtaBanner />
+
+  <Footer slot="footer" />
+</Layout>

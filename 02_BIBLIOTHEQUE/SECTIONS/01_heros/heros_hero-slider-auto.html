@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- lib:meta -->
+<meta name="lib:id" content="heros_hero-slider-auto">
+<meta name="lib:groupe" content="01-header">
+<meta name="lib:categorie" content="heros">
+<meta name="lib:intention" content="ouverture-captation">
+<meta name="lib:placement" content="section">
+<meta name="lib:niveau" content="2">
+<meta name="lib:titre" content="Slider en rotation automatique + glisser">
+<meta name="lib:tags" content="JS natif, carousel, autoplay, pop">
+<meta name="lib:utilite" content="Slider plein écran en autoplay, vraies diapositives qui glissent (translateX), navigation au drag, flèches et clavier ; images qui poppent à l'arrivée (scale + fondu au chargement). Vitrines visuelles et mises en avant rotatives. JS natif.">
+<meta name="lib:showcase" content="non">
+<meta name="lib:secteurs" content="polyvalent">
+<meta name="lib:slots" content="slides:liste:2-5">
+<meta name="lib:anatomie" content="base:3 diapositives, chacune 1 surtitre, 1 titre, 1 sous-titre, 1 à 2 boutons et 1 image de fond; surtitre:eyebrow en majuscules (ex Slide 01 - Catégorie); titre:H1 sur la 1re slide puis H2, clamp 2.5 à 4.5rem, gras 800; sous-titre:paragraphe court 2 lignes, largeur max 32rem, sur voile dégradé pour lisibilité; cta:bouton primaire plein avec flèche + bouton ghost translucide à backdrop-blur (la 3e slide n a que le primaire); images:1 image plein écran par slide en object-fit cover avec ken-burns lent (scale 1.06 vers 1 sur la slide active); controles:2 flèches latérales rondes, 3 dots de pagination (le dot actif s allonge) et un compteur 01 / 03; animation:slider plein écran qui glisse en translateX (rail flex + clones aux extrémités pour boucle continue), autoplay 5.5s, image qui poppe au chargement (scale + fondu avec ressort) et contenu en cascade montante à chaque arrivée; hover:survol du slider met l autoplay en pause, flèches et boutons s inversent en blanc au survol; navigation:glisser-déposer live au pointeur (suit le doigt puis snap) + flèches clavier; responsive:sous 600px flèches réduites et compteur masqué; reduced-motion respecté">
+<!-- /lib:meta -->
+<title>Slider en rotation automatique + glisser</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- ==========================================================================
+     STYLE — Hero 17 · Slider fullscreen, vraies diapositives qui GLISSENT
+     (rail flex + translateX), boucle continue, drag-to-swipe live,
+     flèches latérales, dots de pagination, compteur, ken-burns sur l'image
+     active, cascade d'animations sur le contenu (eyebrow → titre → sub → CTAs).
+     Pattern industriel / B2B. JS natif (Pointer Events).
+     ========================================================================== -->
+<style>
+  /* --- 1. TOKENS ---------------------------------------------------------- */
+  :root{
+    --bg:#fdfdfd;
+    --fg:#111111;
+    --accent:#16181d;
+    --accent-dark:#000;
+    --line:#e5e5e5;
+    --font:"Outfit",ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+    --radius:8px;
+    --ease:cubic-bezier(.22,.61,.36,1);
+    --ease-out:cubic-bezier(.16,1,.3,1);
+    --slide:.7s;                 /* durée du glissement */
+    --gutter:clamp(1rem,3vw,2rem);
+  }
+
+  /* --- 2. RESET ----------------------------------------------------------- */
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6}
+  a{text-decoration:none;color:inherit}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  img,svg{display:block;max-width:100%}
+
+  /* --- 3. LAYOUT slider (rail qui glisse) -------------------------------- */
+  .hero-slider{cursor:grab;-webkit-user-select:none;user-select:none;
+    position:relative;height:100vh;height:100dvh;
+    overflow:hidden;background:#0b0b0d;}
+  .hero-slider.is-grabbing{cursor:grabbing}
+
+  /* Le rail : toutes les diapositives en ligne, déplacé en translateX */
+  .hero-slider__track{display:flex;height:100%;width:100%;
+    transition:transform var(--slide) var(--ease-out);will-change:transform}
+
+  .hero-slide{position:relative;flex:0 0 100%;width:100%;height:100%;overflow:hidden}
+
+  .hero-slide__bg{position:absolute;inset:0}
+  .hero-slide__bg img{-webkit-user-drag:none;pointer-events:none;
+    width:100%;height:100%;object-fit:cover;
+    transform:scale(1.06);transition:transform 6s var(--ease-out)}
+  .hero-slide.is-on .hero-slide__bg img{transform:scale(1)}
+
+  /* Effet F — « pop » au CHARGEMENT, une seule fois : l'image de la slide
+     active initiale surgit (scale + fondu, léger ressort). Posé sur le WRAPPER
+     .hero-slide__bg (qui n'a aucun transform), donc il ne touche NI le translateX
+     du rail NI le scale ken-burns de l'<img>. `backwards` applique l'état initial
+     avant le délai sans figer la fin (jamais forwards). Ciblé par [data-load-pop]
+     présent uniquement dans le HTML statique sur la 1re vraie slide → ni les
+     clones ni les slides suivantes (qui n'ont pas l'attribut) ne clignotent, et
+     la nav JS (toggle .is-on) ne le rejoue pas. */
+  @keyframes fxPop{from{opacity:0;transform:scale(.82)}to{opacity:1;transform:none}}
+  .hero-slide[data-load-pop] .hero-slide__bg{
+    animation:fxPop .9s cubic-bezier(.34,1.56,.64,1) .15s backwards}
+
+  /* voile lisibilité gradient */
+  .hero-slide::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:
+      linear-gradient(180deg,rgba(11,11,13,.15) 0%,rgba(11,11,13,.55) 55%,rgba(11,11,13,.85) 100%),
+      linear-gradient(90deg,rgba(11,11,13,.65) 0%,rgba(11,11,13,0) 60%)}
+
+  .hero-slide__content{pointer-events:none;position:relative;z-index:1;
+    max-width:1440px;height:100%;margin:0 auto;
+    padding:0 var(--gutter) clamp(3rem,6vh,5rem);
+    display:flex;flex-direction:column;justify-content:flex-end;color:#fff}
+
+  /* --- 4. TYPOGRAPHIE + animations cascade ------------------------------- */
+  .hero-slide__eyebrow{display:inline-flex;align-items:center;gap:.5rem;
+    font-size:.8125rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--accent);margin-bottom:1rem}
+
+  .hero-slide__title{font-size:clamp(2.5rem,6vw,4.5rem);font-weight:800;
+    letter-spacing:-.025em;line-height:1.02;margin-bottom:1.25rem;max-width:28rem}
+  .hero-slide__title em{font-style:normal;font-weight:800}
+
+  .hero-slide__sub{font-size:1.0625rem;line-height:1.55;color:rgba(255,255,255,.92);
+    max-width:32rem;margin-bottom:1.75rem}
+
+  .hero-slide__actions{display:flex;flex-wrap:wrap;gap:.75rem}
+
+  /* Entrée en cascade — rejouée à chaque arrivée via la classe .animate.
+     (Le contenu est visible par défaut ; seules les slides à l'écran le sont
+     vraiment puisque le slider est en overflow:hidden.) */
+  @keyframes h17-rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+  .hero-slide.animate .hero-slide__eyebrow{animation:h17-rise .8s var(--ease-out) .2s both}
+  .hero-slide.animate .hero-slide__title{animation:h17-rise .85s var(--ease-out) .35s both}
+  .hero-slide.animate .hero-slide__sub{animation:h17-rise .85s var(--ease-out) .5s both}
+  .hero-slide.animate .hero-slide__actions{animation:h17-rise .85s var(--ease-out) .65s both}
+
+  /* --- 5. ACCENT / boutons ------------------------------------------------- */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
+    font-weight:600;font-size:.9375rem;padding:14px 22px;border-radius:var(--radius);
+    border:1px solid transparent;cursor:pointer;
+    box-shadow:0 6px 20px -6px rgba(0,0,0,.45);
+    transition:transform .2s var(--ease),background .2s var(--ease),
+      border-color .2s var(--ease),color .2s var(--ease)}
+  .btn svg{width:1rem;height:1rem;flex-shrink:0}
+  .btn--primary{background:var(--accent);color:#fff}
+  .btn--primary:hover{background:var(--accent-dark);transform:translateY(-2px)}
+  .btn--ghost{background:rgba(255,255,255,.08);color:#fff;
+    border-color:rgba(255,255,255,.45);backdrop-filter:blur(8px)}
+  .btn--ghost:hover{background:#fff;color:var(--fg);
+    border-color:#fff;transform:translateY(-2px)}
+
+  /* --- 6. CONTROLS (flèches + dots + compteur) --------------------------- */
+  .hero-slider__arrow{position:absolute;top:50%;transform:translateY(-50%);
+    z-index:6;display:flex;align-items:center;justify-content:center;
+    width:3rem;height:3rem;border-radius:50%;
+    background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35);
+    color:#fff;backdrop-filter:blur(8px);padding:0;
+    transition:background .2s var(--ease),transform .2s var(--ease-out),
+      border-color .2s var(--ease)}
+  .hero-slider__arrow:hover{background:rgba(255,255,255,.95);color:var(--fg);
+    border-color:#fff;transform:translateY(-50%) scale(1.05)}
+  .hero-slider__arrow svg{width:1.1rem;height:1.1rem}
+  .hero-slider__arrow--prev{left:clamp(.75rem,2vw,1.5rem)}
+  .hero-slider__arrow--next{right:clamp(.75rem,2vw,1.5rem)}
+
+  .hero-slider__controls{position:absolute;left:0;right:0;bottom:1.25rem;
+    z-index:5;display:flex;justify-content:center;align-items:center;
+    gap:.75rem;padding:0 var(--gutter)}
+  .hero-slider__dots{display:flex;gap:.55rem}
+  .hero-slider__dot{width:24px;height:3px;border-radius:2px;
+    background:rgba(255,255,255,.35);border:0;padding:0;cursor:pointer;
+    pointer-events:auto;
+    transition:background .3s var(--ease),width .3s var(--ease)}
+  .hero-slider__dot.is-on{background:var(--accent);width:48px}
+
+  .hero-slider__count{position:absolute;right:var(--gutter);bottom:1.5rem;
+    z-index:5;font-size:.875rem;font-weight:600;
+    color:rgba(255,255,255,.85);font-variant-numeric:tabular-nums}
+  .hero-slider__count strong{color:#fff;font-size:1rem}
+
+  /* Réactiver pointer-events sur les éléments interactifs */
+  .hero-slide__actions,.hero-slider__dot,.hero-slider__arrow{pointer-events:auto}
+
+  /* --- 7. RESPONSIVE / ACCESSIBILITÉ -------------------------------------- */
+  @media (max-width:600px){
+    .hero-slider__arrow{width:2.5rem;height:2.5rem;background:rgba(255,255,255,.18)}
+    .hero-slider__arrow svg{width:1rem;height:1rem}
+    .hero-slider__count{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .hero-slider__track{transition:none!important}
+    .hero-slide__bg img{transition:none!important;transform:none!important}
+    .hero-slide.animate *{animation:none!important}
+    .hero-slide[data-load-pop] .hero-slide__bg{animation:none!important}  /* pop de chargement neutralisé */
+  }
+</style>
+</head>
+<body>
+
+<!-- ==========================================================================
+     STRUCTURE — slider : un rail (.hero-slider__track) qui glisse, une
+     .hero-slide par diapositive. La classe .is-on marque l'active.
+     ========================================================================== -->
+<!-- COLLECTION "slides" : chaque .hero-slide est une unite complete. L'injecteur
+     clone le 1er .hero-slide (data-slot-item) N fois et remplit les data-field
+     (image, titre, accroche, cta). Les slides de demo suivants sont supprimes. -->
+<section class="hero-slider" id="heroSlider">
+
+  <div class="hero-slider__track" id="heroTrack" data-slot="slides">
+
+    <article class="hero-slide is-on" data-slide="0" aria-hidden="false" data-load-pop data-slot-item>
+      <div class="hero-slide__bg"><img src="https://placehold.co/1920x1080/1a1a1a/666?text=Slide+1" alt="" loading="eager" data-field="image"></div>
+      <div class="hero-slide__content">
+        <span class="hero-slide__eyebrow">Slide 01 · Catégorie</span>
+        <h1 class="hero-slide__title" data-field="titre">Titre du slide.</h1>
+        <p class="hero-slide__sub" data-field="accroche">Un sous-titre court qui développe l'accroche en deux lignes maximum.</p>
+        <div class="hero-slide__actions">
+          <a class="btn btn--primary" href="#" data-field="cta">CTA principal
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a class="btn btn--ghost" href="#" data-field="cta">CTA secondaire</a>
+        </div>
+      </div>
+    </article>
+
+    <article class="hero-slide" data-slide="1" aria-hidden="true">
+      <div class="hero-slide__bg"><img src="https://placehold.co/1920x1080/222/666?text=Slide+2" alt="" loading="lazy"></div>
+      <div class="hero-slide__content">
+        <span class="hero-slide__eyebrow">Slide 02 · Catégorie</span>
+        <h2 class="hero-slide__title">Deuxième slide.</h2>
+        <p class="hero-slide__sub">Texte de remplacement pour la deuxième diapositive.</p>
+        <div class="hero-slide__actions">
+          <a class="btn btn--primary" href="#">CTA principal
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a class="btn btn--ghost" href="#">CTA secondaire</a>
+        </div>
+      </div>
+    </article>
+
+    <article class="hero-slide" data-slide="2" aria-hidden="true">
+      <div class="hero-slide__bg"><img src="https://placehold.co/1920x1080/2a2a2a/777?text=Slide+3" alt="" loading="lazy"></div>
+      <div class="hero-slide__content">
+        <span class="hero-slide__eyebrow">Slide 03 · Catégorie</span>
+        <h2 class="hero-slide__title">Troisième.</h2>
+        <p class="hero-slide__sub">Encore une diapositive de démonstration.</p>
+        <div class="hero-slide__actions">
+          <a class="btn btn--primary" href="#">CTA principal
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div>
+      </div>
+    </article>
+
+  </div>
+
+  <!-- Flèches navigation -->
+  <button class="hero-slider__arrow hero-slider__arrow--prev" type="button" id="heroPrev" aria-label="Slide précédente">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <button class="hero-slider__arrow hero-slider__arrow--next" type="button" id="heroNext" aria-label="Slide suivante">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
+
+  <!-- Dots -->
+  <div class="hero-slider__controls">
+    <div class="hero-slider__dots" id="heroDots">
+      <button class="hero-slider__dot is-on" type="button" aria-label="Slide 1"></button>
+      <button class="hero-slider__dot" type="button" aria-label="Slide 2"></button>
+      <button class="hero-slider__dot" type="button" aria-label="Slide 3"></button>
+    </div>
+  </div>
+
+  <!-- Compteur -->
+  <div class="hero-slider__count" aria-live="polite"><strong id="heroSlideNum">01</strong> / 03</div>
+</section>
+
+<!-- ==========================================================================
+     SCRIPT — vrai glissement (translateX) + boucle continue (clones) +
+     autoplay + dots + flèches + drag live (Pointer Events)
+     ========================================================================== -->
+<script>
+  (function () {
+    var slider = document.getElementById('heroSlider');
+    var track = document.getElementById('heroTrack');
+    if (!slider || !track) return;
+    var real = [].slice.call(track.querySelectorAll('.hero-slide'));
+    var N = real.length;
+    var dots = [].slice.call(document.querySelectorAll('#heroDots .hero-slider__dot'));
+    var counter = document.getElementById('heroSlideNum');
+    var rm = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    if (N < 2) return; // rien à faire glisser
+
+    /* Clones aux extrémités → boucle continue sans saut visible */
+    var cloneFirst = real[0].cloneNode(true);
+    var cloneLast = real[N - 1].cloneNode(true);
+    [cloneFirst, cloneLast].forEach(function (c) {
+      c.classList.remove('is-on', 'animate');
+      c.setAttribute('aria-hidden', 'true');
+      c.setAttribute('data-clone', '1');
+      c.removeAttribute('data-load-pop');   // le pop de chargement ne vit que sur la vraie 1re slide
+    });
+    track.insertBefore(cloneLast, real[0]);   // [cloneLast, ...real]
+    track.appendChild(cloneFirst);            // [cloneLast, ...real, cloneFirst]
+    var children = [].slice.call(track.children);
+
+    var pos = 1;          // 1 = première vraie slide (0 = cloneLast, N+1 = cloneFirst)
+    var busy = false;
+
+    function pad (n) { return String(n).padStart(2, '0'); }
+    function realIndex (p) { if (p === 0) return N - 1; if (p === N + 1) return 0; return p - 1; }
+
+    function applyTransform (withTransition) {
+      track.style.transition = (withTransition && !rm) ? '' : 'none';
+      track.style.transform = 'translateX(-' + (pos * 100) + '%)';
+    }
+    function markActive (animate) {
+      children.forEach(function (c, i) { c.classList.toggle('is-on', i === pos); });
+      if (animate && !rm) {
+        children.forEach(function (c) { c.classList.remove('animate'); });
+        void track.offsetWidth;               // reflow → rejoue la cascade
+        children[pos].classList.add('animate');
+      }
+      var ri = realIndex(pos);
+      dots.forEach(function (d, i) { d.classList.toggle('is-on', i === ri); });
+      if (counter) counter.textContent = pad(ri + 1);
+    }
+    function settle () {                       // saut invisible clone → vraie slide
+      if (pos === N + 1) { pos = 1; applyTransform(false); markActive(false); void track.offsetWidth; }
+      else if (pos === 0) { pos = N; applyTransform(false); markActive(false); void track.offsetWidth; }
+    }
+    function move (delta) {
+      if (busy) return;
+      busy = true;
+      pos += delta;
+      applyTransform(true);
+      markActive(true);
+      if (rm) { settle(); busy = false; }      // pas de transitionend en reduced-motion
+    }
+    function goTo (ri) {                        // dots : aller direct à une vraie slide
+      if (busy) return;
+      var target = ri + 1;
+      if (target === pos) return;
+      busy = true;
+      pos = target;
+      applyTransform(true);
+      markActive(true);
+      if (rm) busy = false;
+    }
+
+    track.addEventListener('transitionend', function (e) {
+      if (e.target !== track || e.propertyName !== 'transform') return;
+      settle();
+      busy = false;
+    });
+
+    /* init */
+    applyTransform(false);
+    markActive(true);
+
+    /* Autoplay (s'arrête définitivement après une interaction manuelle) */
+    var t, paused = false;
+    function tick () { if (!paused && !rm) move(1); }
+    function start () { stop(); if (!rm) t = setInterval(tick, 5500); }
+    function stop () { clearInterval(t); }
+
+    dots.forEach(function (d, i) {
+      d.addEventListener('click', function () { paused = true; stop(); goTo(i); });
+    });
+    var prevBtn = document.getElementById('heroPrev');
+    var nextBtn = document.getElementById('heroNext');
+    if (prevBtn) prevBtn.addEventListener('click', function () { paused = true; stop(); move(-1); });
+    if (nextBtn) nextBtn.addEventListener('click', function () { paused = true; stop(); move(1); });
+
+    /* Clavier (slider focusable via les boutons ; flèches ← → quand le focus est dans le slider) */
+    slider.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowLeft') { paused = true; stop(); move(-1); }
+      else if (e.key === 'ArrowRight') { paused = true; stop(); move(1); }
+    });
+
+    /* Drag live (souris + tactile via Pointer Events) — suit le doigt puis snap */
+    var pStartX = 0, pStartY = 0, dragging = false, dragMoved = false, width = 1;
+    slider.addEventListener('pointerdown', function (e) {
+      if (busy) return;
+      if (e.target.closest('.hero-slider__arrow') || e.target.closest('.hero-slider__dot') || e.target.closest('.hero-slide__actions')) return;
+      pStartX = e.clientX; pStartY = e.clientY;
+      dragging = true; dragMoved = false;
+      width = slider.clientWidth || 1;
+      track.style.transition = 'none';
+      slider.classList.add('is-grabbing');
+      slider.setPointerCapture(e.pointerId);
+      stop();
+    });
+    slider.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      var dx = e.clientX - pStartX;
+      if (Math.abs(dx) > 5) dragMoved = true;
+      track.style.transform = 'translateX(' + (-(pos * 100) + dx / width * 100) + '%)';
+    });
+    function endDrag (e) {
+      if (!dragging) return;
+      dragging = false;
+      slider.classList.remove('is-grabbing');
+      track.style.transition = '';
+      var dx = e.clientX - pStartX, dy = e.clientY - pStartY;
+      if (dragMoved && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+        paused = true;
+        if (dx < 0) move(1); else move(-1);
+      } else {
+        applyTransform(true);                  // snap retour à la slide courante
+      }
+      if (!paused) start();
+    }
+    slider.addEventListener('pointerup', endDrag);
+    slider.addEventListener('pointercancel', function () {
+      if (!dragging) return;
+      dragging = false; slider.classList.remove('is-grabbing');
+      track.style.transition = ''; applyTransform(true);
+      if (!paused) start();
+    });
+
+    /* Pause au survol */
+    slider.addEventListener('mouseenter', stop);
+    slider.addEventListener('mouseleave', function () { if (!paused) start(); });
+
+    start();
+  })();
+</script>
+
+</body>
+</html>

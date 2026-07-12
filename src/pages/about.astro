@@ -1,0 +1,37 @@
+---
+/**
+ * about.astro — the Time Imprints story: intro split, milestones,
+ * big numbers, guarantees, CTA back to the kits.
+ */
+import Layout from "../layouts/Layout.astro";
+import AnnouncementBar from "../components/sections/utilitaire_announcement-bar.astro";
+import Nav from "../components/sections/navbars_nav-sticky-simple.astro";
+import Cart from "../components/Cart.astro";
+import StorySplit from "../components/sections/service_split-atouts-avis-1img.astro";
+import StoryTimeline from "../components/sections/timeline_about-story-timeline.astro";
+import BigNumbers from "../components/sections/stats_stats-big-number.astro";
+import Guarantees from "../components/sections/grid_guarantees-cards.astro";
+import CtaBand from "../components/sections/bandeau_divider-cta-band.astro";
+import Footer from "../components/sections/pieds-de-page_footer-bigtype.astro";
+import { SITE } from "../data/site";
+---
+
+<Layout
+  title={`About — ${SITE.name}`}
+  description="Time Imprints started in 2023 in Ukraine. Today our paint-imprint kits turn evenings into artworks in homes all over the world."
+  lang="en"
+>
+  <Fragment slot="header">
+    <AnnouncementBar />
+    <Nav currentPath="/about/" />
+    <Cart />
+  </Fragment>
+
+  <StorySplit />
+  <StoryTimeline />
+  <BigNumbers />
+  <Guarantees />
+  <CtaBand />
+
+  <Footer slot="footer" />
+</Layout>

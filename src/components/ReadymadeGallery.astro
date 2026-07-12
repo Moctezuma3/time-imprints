@@ -1,0 +1,244 @@
+---
+/**
+ * ReadymadeGallery.astro — the /paintings/ shop of one-of-a-kind finished pieces.
+ * Each card can be ordered (adds to the same cart via [data-add-to-cart], with
+ * data-url="/paintings/" so the cart links back here) or enquired about through
+ * a lightweight inquiry modal. Sold pieces show a badge and only offer "request
+ * a similar piece". Client-side inquiry (no backend) → honest confirmation state.
+ */
+import { READYMADE } from "../data/site";
+
+export interface Props {
+  title?: string;
+  subtitle?: string;
+  pieces?: typeof READYMADE;
+}
+const {
+  title = "Available originals",
+  subtitle = "Every piece is one of a kind — when it's gone, it's gone. Order it as-is, or ask us anything before you do.",
+  pieces = READYMADE,
+} = Astro.props;
+---
+
+<section class="ti-ready" aria-label={title}>
+  <div class="inner">
+    <header class="head wf-rev">
+      <h2 class="head__title">{title}</h2>
+      <p class="head__sub">{subtitle}</p>
+    </header>
+
+    <div class="grid">
+      {pieces.map((p) => (
+        <article class={`piece wf-rev${p.sold ? " is-sold" : ""}`}>
+          <div class="piece__media">
+            <img src={p.image} alt={p.title} loading="lazy" />
+            {p.sold && <span class="piece__sold">Sold</span>}
+          </div>
+          <div class="piece__body">
+            <h3 class="piece__title">{p.title}</h3>
+            <p class="piece__size">{p.size}</p>
+            <p class="piece__note">{p.note}</p>
+            <p class="piece__price">
+              {p.sold ? <span class="piece__gone">One of one — now in a home 🖤</span> : <>€{p.priceEur}</>}
+            </p>
+            <div class="piece__ctas">
+              {p.sold ? (
+                <button
+                  type="button"
+                  class="btn btn--primary piece__btn"
+                  data-inquire
+                  data-title={`a piece like "${p.title}"`}
+                >Request a similar piece</button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    class="btn btn--primary piece__btn"
+                    data-add-to-cart
+                    data-slug={p.id}
+                    data-name={p.title}
+                    data-price={p.priceEur}
+                    data-image={p.image}
+                    data-url="/paintings/"
+                    data-label-original="Add to cart"
+                  >Add to cart</button>
+                  <button
+                    type="button"
+                    class="btn btn--ghost piece__btn"
+                    data-inquire
+                    data-title={`"${p.title}"`}
+                  >Ask about it</button>
+                </>
+              )}
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+  </div>
+
+  <!-- Inquiry modal -->
+  <div class="inq" data-inq-root aria-hidden="true">
+    <div class="inq__overlay" data-inq-close></div>
+    <div class="inq__dialog" role="dialog" aria-modal="true" aria-labelledby="inq-title" tabindex="-1">
+      <button class="inq__close" type="button" data-inq-close aria-label="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
+
+      <form class="inq__form" data-inq-form novalidate>
+        <h3 class="inq__title" id="inq-title">Ask about <span data-inq-subject>this piece</span></h3>
+        <p class="inq__lead">Send us a question and we'll reply by email — usually within a day.</p>
+        <label class="inq__field">
+          <span>Your name</span>
+          <input type="text" name="name" autocomplete="name" required />
+        </label>
+        <label class="inq__field">
+          <span>Email</span>
+          <input type="email" name="email" autocomplete="email" required />
+        </label>
+        <label class="inq__field">
+          <span>Message</span>
+          <textarea name="message" rows="3" required></textarea>
+        </label>
+        <button type="submit" class="btn btn--primary inq__send">Send inquiry</button>
+      </form>
+
+      <div class="inq__done" data-inq-done hidden>
+        <div class="inq__done-glyph" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" /></svg>
+        </div>
+        <h3>Message sent 💌</h3>
+        <p data-inq-done-text>Thanks! We'll get back to you shortly.</p>
+        <button type="button" class="btn btn--ghost" data-inq-close>Close</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .ti-ready { color: var(--fg); }
+  .inner { width: 100%; max-width: var(--container); margin: 0 auto; padding-inline: var(--gutter); }
+
+  .head { max-width: 40rem; margin-bottom: clamp(1.8rem, 4vw, 2.6rem); }
+  .head__title { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; letter-spacing: -.025em; }
+  .head__sub { margin-top: .7rem; color: var(--muted); line-height: 1.6; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem; }
+
+  .piece {
+    display: flex; flex-direction: column; background: var(--surface);
+    border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
+    transition: border-color .25s, box-shadow .25s, transform .25s;
+  }
+  .piece__media { position: relative; aspect-ratio: 4 / 5; background: color-mix(in srgb, var(--fg) 6%, var(--bg)); overflow: hidden; }
+  .piece__media img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s cubic-bezier(.16,1,.3,1); }
+  .is-sold .piece__media img { filter: grayscale(.35) brightness(.8); }
+  .piece__sold {
+    position: absolute; top: .8rem; left: .8rem;
+    background: color-mix(in srgb, var(--bg) 72%, transparent); color: var(--fg);
+    border: 1px solid var(--line); backdrop-filter: blur(6px);
+    font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    padding: .3rem .7rem; border-radius: 999px;
+  }
+
+  .piece__body { padding: 1.1rem 1.2rem 1.3rem; display: flex; flex-direction: column; flex: 1; }
+  .piece__title { font-size: 1.12rem; font-weight: 700; letter-spacing: -.01em; }
+  .piece__size { color: var(--accent-2); font-size: .8rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; margin-top: .3rem; }
+  .piece__note { color: var(--muted); font-size: .9rem; line-height: 1.55; margin-top: .55rem; }
+  .piece__price { margin-top: .8rem; font-weight: 800; font-size: 1.3rem; letter-spacing: -.02em; }
+  .piece__gone { font-size: .9rem; font-weight: 600; color: var(--muted); }
+  .piece__ctas { display: flex; gap: .55rem; flex-wrap: wrap; margin-top: auto; padding-top: 1rem; }
+  .piece__btn { min-height: 40px; padding: .5em 1em; font-size: .9rem; border-radius: calc(var(--radius) * .6); }
+  .piece__btn.btn--primary { flex: 1; }
+
+  @media (hover: hover) and (pointer: fine) {
+    .piece:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); box-shadow: 0 24px 44px -26px var(--shadow-color); transform: translateY(-4px); }
+    .piece:hover .piece__media img { transform: scale(1.05); }
+    .is-sold:hover { transform: none; }
+  }
+
+  /* Inquiry modal */
+  .inq { position: fixed; inset: 0; z-index: 210; pointer-events: none; }
+  .inq[aria-hidden="false"] { pointer-events: auto; }
+  .inq__overlay { position: absolute; inset: 0; background: color-mix(in srgb, #000 62%, transparent); opacity: 0; transition: opacity .3s; }
+  .inq[aria-hidden="false"] .inq__overlay { opacity: 1; }
+  .inq__dialog {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -46%) scale(.97);
+    width: min(30rem, calc(100% - 2rem)); max-height: calc(100% - 2rem); overflow-y: auto;
+    background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: 0 40px 80px -30px var(--shadow-color); padding: 1.6rem; text-align: left;
+    opacity: 0; transition: opacity .3s, transform .3s cubic-bezier(.16,1,.3,1);
+  }
+  .inq[aria-hidden="false"] .inq__dialog { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  .inq__close { position: absolute; top: .9rem; right: .9rem; width: 2.2rem; height: 2.2rem; display: grid; place-items: center;
+    border: 1px solid var(--line); border-radius: .55rem; background: var(--surface); color: var(--fg); cursor: pointer; }
+  .inq__close svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+  .inq__title { font-size: 1.3rem; font-weight: 800; padding-right: 2rem; }
+  .inq__title span { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .inq__lead { color: var(--muted); font-size: .92rem; margin: .5rem 0 1.1rem; line-height: 1.55; }
+  .inq__field { display: flex; flex-direction: column; gap: .35rem; margin-bottom: .8rem; }
+  .inq__field span { font-size: .82rem; color: var(--muted); font-weight: 600; }
+  .inq__field input, .inq__field textarea {
+    background: var(--surface); border: 1px solid var(--line); border-radius: calc(var(--radius) * .55);
+    padding: .65rem .8rem; color: var(--fg); font: inherit; width: 100%; resize: vertical;
+  }
+  .inq__field input:focus, .inq__field textarea:focus { outline: none; border-color: var(--accent); }
+  .inq__send { width: 100%; margin-top: .4rem; }
+
+  .inq__done { text-align: center; display: flex; flex-direction: column; align-items: center; gap: .9rem; padding: 1rem 0; }
+  .inq__done[hidden] { display: none; }
+  .inq__done-glyph { width: 3.6rem; height: 3.6rem; display: grid; place-items: center; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+  .inq__done-glyph svg { width: 1.8rem; height: 1.8rem; fill: none; stroke: var(--accent-contrast); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .inq__done h3 { font-size: 1.4rem; font-weight: 800; }
+  .inq__done p { color: var(--muted); line-height: 1.55; }
+
+  @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } .piece__ctas { justify-content: center; } }
+  @media (prefers-reduced-motion: reduce) {
+    .piece, .piece__media img, .inq__overlay, .inq__dialog { transition: none; }
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>(".ti-ready").forEach((root) => {
+    const modal = root.querySelector<HTMLElement>("[data-inq-root]");
+    const form = root.querySelector<HTMLFormElement>("[data-inq-form]");
+    const done = root.querySelector<HTMLElement>("[data-inq-done]");
+    const subject = root.querySelector<HTMLElement>("[data-inq-subject]");
+    const doneText = root.querySelector<HTMLElement>("[data-inq-done-text]");
+    const messageField = form?.querySelector<HTMLTextAreaElement>("[name='message']");
+    if (!modal || !form || !done || !subject || !messageField) return;
+
+    function open(title: string) {
+      subject!.textContent = title;
+      messageField!.value = `Hi! I'd love more details about ${title}.`;
+      form!.hidden = false;
+      done!.hidden = true;
+      modal!.setAttribute("aria-hidden", "false");
+      document.documentElement.style.overflow = "hidden";
+      (modal!.querySelector(".inq__dialog") as HTMLElement)?.focus();
+    }
+    function close() {
+      modal!.setAttribute("aria-hidden", "true");
+      document.documentElement.style.overflow = "";
+    }
+
+    root.querySelectorAll<HTMLElement>("[data-inquire]").forEach((btn) =>
+      btn.addEventListener("click", () => open(btn.dataset.title || "this piece"))
+    );
+    modal.querySelectorAll<HTMLElement>("[data-inq-close]").forEach((el) =>
+      el.addEventListener("click", close)
+    );
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (!form.checkValidity()) { form.reportValidity(); return; }
+      const email = (form.querySelector("[name='email']") as HTMLInputElement)?.value || "";
+      if (doneText) doneText.textContent = `Thanks! We'll reply to ${email} shortly with photos and details.`;
+      form.hidden = true;
+      done.hidden = false;
+    });
+  });
+</script>

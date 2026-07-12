@@ -1,0 +1,121 @@
+---
+/**
+ * Intégration — section `stats_trust-stats-inline` (section NORMALE, non bleed).
+ * Règles Phase 2 appliquées :
+ *   1. `:root` local, reset et styles body supprimés → tokens hérités de la base.
+ *   2. Import Google Fonts supprimé (la base fournit --font).
+ *   3. Pas de min-height ni de padding vertical sur la racine → rythme de la base.
+ *      Le padding interne du bandeau (1.5rem) est conservé : il appartient à la
+ *      surface bordée, pas au rythme de section.
+ *   4. Couleurs codées en dur → tokens (--surface, --line, --muted, --accent).
+ *   5. Contenu remplacé par les chiffres réels Time Imprints (58K / 985K / 300+ / 3+).
+ *   6. Count-up natif préservé (rAF easeOutCubic, format en-US) et SCOPÉ à
+ *      `.ti-stats` (supporte 0 ou n instances) ; fallback no-JS/reduced-motion :
+ *      les valeurs finales sont déjà rendues dans le HTML.
+ */
+export interface Props {
+  stats?: { value: number; suffix?: string; label: string }[];
+}
+const {
+  stats = [
+    { value: 58, suffix: "K", label: "Instagram followers" },
+    { value: 985, suffix: "K", label: "likes on one reel" },
+    { value: 300, suffix: "+", label: "five-star reviews" },
+    { value: 3, suffix: "+", label: "years of memories" },
+  ],
+} = Astro.props;
+const fmt = (n: number) => n.toLocaleString("en-US");
+---
+
+<section class="ti-stats" aria-label="Key figures">
+  <div class="statbar">
+    <div class="statbar__inner">
+      {stats.map((s) => (
+        <div class="stat">
+          <div class="stat__num">
+            <span data-to={s.value}>{fmt(s.value)}</span>
+            {s.suffix && <span class="suffix">{s.suffix}</span>}
+          </div>
+          <div class="stat__label">{s.label}</div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .ti-stats { color: var(--fg); }
+
+  /* --- Bandeau compact ----------------------------------------------------- */
+  .statbar { background: var(--surface); border-block: 1px solid var(--line); }
+  .statbar__inner {
+    max-width: var(--container); margin: 0 auto;
+    padding: 1.5rem var(--gutter);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+  }
+  .stat { text-align: center; padding: .2rem 1rem; position: relative; }
+  .stat + .stat::before {
+    content: ""; position: absolute; left: 0; top: 50%;
+    transform: translateY(-50%); height: 2.4rem; width: 1px; background: var(--line);
+  }
+
+  /* --- Typo ------------------------------------------------------------------ */
+  .stat__num {
+    font-size: clamp(1.6rem, 3.4vw, 2.2rem); font-weight: 800;
+    letter-spacing: -.03em; line-height: 1;
+    display: inline-flex; align-items: baseline;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat__num .suffix {
+    font-size: .65em; margin-left: .08em;
+    background: linear-gradient(100deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+  }
+  .stat__label { font-size: var(--step--1); color: var(--muted); font-weight: 500; margin-top: .45rem; }
+
+  /* --- Responsive -------------------------------------------------------------- */
+  @media (max-width: 680px) {
+    .statbar__inner { grid-template-columns: repeat(2, 1fr); gap: 1.3rem 0; }
+    .stat:nth-child(odd)::before { display: none; }
+    .stat:nth-child(3)::before, .stat:nth-child(4)::before {
+      content: ""; position: absolute; top: -.65rem; left: 1rem; right: 1rem; bottom: auto;
+      height: 1px; width: auto; transform: none; background: var(--line);
+    }
+  }
+
+  /* --- Accessibilité --------------------------------------------------------------- */
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<script>
+  (function () {
+    var reduce = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+    if (reduce || !("IntersectionObserver" in window)) return; /* fallback : valeurs finales déjà en HTML */
+
+    function fmt(n: number) { return n.toLocaleString("en-US"); }
+    function run(el: HTMLElement) {
+      var to = parseFloat(el.getAttribute("data-to") || "0");
+      var t0: number | null = null, dur = 1400;
+      function step(ts: number) {
+        if (t0 === null) t0 = ts;
+        var p = Math.min((ts - t0) / dur, 1);
+        var e = 1 - Math.pow(1 - p, 3); /* easeOutCubic */
+        el.textContent = fmt(Math.round(to * e));
+        if (p < 1) requestAnimationFrame(step);
+      }
+      el.textContent = "0";
+      requestAnimationFrame(step);
+    }
+
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { run(en.target as HTMLElement); io.unobserve(en.target); }
+      });
+    }, { threshold: .6 });
+
+    [].forEach.call(document.querySelectorAll(".ti-stats .stat__num [data-to]"), function (el: HTMLElement) {
+      io.observe(el);
+    });
+  })();
+</script>

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- lib:meta -->
+<meta name="lib:id" content="heros_hero-marquee-headline">
+<meta name="lib:groupe" content="01-header">
+<meta name="lib:categorie" content="heros">
+<meta name="lib:intention" content="ouverture-captation">
+<meta name="lib:placement" content="section">
+<meta name="lib:niveau" content="2">
+<meta name="lib:titre" content="Texte + image, preuve sociale + logos défilants">
+<meta name="lib:tags" content="JS natif, split, marquee, avatars-accordeon">
+<meta name="lib:utilite" content="Demi-écran image, contenu avec avatars empilés (qui s'écartent + grossissent au survol), stat, CTA pastille animé et bandeau de logos en défilement continu (pause au survol). SaaS, agences, services. JS natif.">
+<meta name="lib:showcase" content="non">
+<meta name="lib:secteurs" content="polyvalent">
+<meta name="lib:slots" content="titre:titre:court; accroche:texte:moyen; cta:cta:1-2; visuel:media:1">
+<meta name="lib:anatomie" content="base:1 titre, 1 sous-titre, 1 image principale, 4 avatars, 1 stat, 1 bouton CTA, 10 logos (5 uniques dupliqués); layout:split image plein bord + contenu, une seule colonne sur mobile, grille 12 colonnes (6/6) plein écran dès 768px; titre:H1 (clamp 2.2 à 4.4rem), graisse fine 400; sous-titre:paragraphe (max 42ch), graisse 300, couleur muette; proof:rangée d'avatars empilés en chevauchement (filtre noir et blanc) + bloc statistique chiffré; cta:1 bouton pastille arrondie avec rond fléché, double flèche qui bascule en diagonale et inversion des couleurs au survol; logos:bandeau marquee en défilement continu (25s), dégradés de fondu sur les bords; animation:texte/proof/cta en cascade à l'entrée, marquee en boucle infinie; hover:avatar survolé qui repasse en couleur, grossit (scale 1.15), passe au premier plan et écarte ses voisins, marquee en pause au survol; responsive:image en bandeau responsive (clamp 12rem à 22rem selon 40vh) au-dessus du texte sur mobile, marquee aux degrades de bord reduits et padding resserre sur mobile, securite anti-debordement horizontal (min-width:0 sur le contenu), plein écran côte à côte dès 768px, animations désactivées si mouvement réduit">
+<!-- /lib:meta -->
+<title>Texte + image, preuve sociale + logos défilants</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<!-- ==========================================================================
+     STYLE — Hero 19 · Split (image plein bord + contenu, avatars, CTA, marquee)
+     Re-skin rapide : modifie uniquement le bloc :root (section 1).
+     Marquee et hover du CTA en CSS pur (ex-framer/Marquee), no-JS friendly.
+     ========================================================================== -->
+<style>
+  /* --- 1. TOKENS ---------------------------------------------------------- */
+  :root{
+    --bg:#ffffff;
+    --fg:#101314;
+    --muted:#5b6160;
+    --accent:#e1fcad;            /* pastille CTA */
+    --accent-fg:#122023;         /* fond CTA au survol */
+    --line:#e7e8e6;
+    --font:"Outfit",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --maxw:1480px;
+  }
+
+  /* --- 2. RESET ----------------------------------------------------------- */
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  img{display:block;max-width:100%}
+
+  /* --- 3. LAYOUT ---------------------------------------------------------- */
+  .hero{
+    position:relative;width:100%;overflow:hidden;
+    background:var(--bg);color:var(--fg);font-family:var(--font);
+  }
+  .hero__grid{
+    width:100%;
+    display:grid;grid-template-columns:1fr;
+  }
+  .hero__media{height:clamp(12rem,40vh,22rem);width:100%}
+  .hero__media img{height:100%;width:100%;object-fit:cover;object-position:center}
+  .hero__content{
+    display:flex;align-items:center;min-width:0;      /* évite le débordement flex */
+    padding:2rem 1.5rem 2.5rem;
+  }
+  .hero__inner{width:100%;max-width:48rem;min-width:0} /* le contenu peut rétrécir (marquee) */
+
+  /* --- 4. TYPOGRAPHIE ----------------------------------------------------- */
+  .hero__title{
+    font-weight:400;letter-spacing:-.03em;line-height:1.04;
+    font-size:clamp(2.2rem,6vw,4.4rem);
+  }
+  .hero__sub{
+    margin-top:1.4rem;max-width:42ch;
+    font-weight:300;line-height:1.6;
+    font-size:clamp(1rem,1.6vw,1.25rem);color:var(--muted);
+  }
+
+  /* --- 5. PREUVE SOCIALE (avatars + stat) --------------------------------- */
+  .hero__proof{margin-top:2rem;display:flex;flex-wrap:wrap;align-items:center;gap:.85rem}
+  .hero__avatars{display:flex}
+  .hero__avatars img{
+    position:relative;z-index:1;
+    width:3rem;height:3rem;border-radius:50%;object-fit:cover;
+    border:2px solid var(--bg);margin-left:-.75rem;transform-origin:center bottom;
+    filter:grayscale(1);
+    transition:filter .3s ease,transform .55s cubic-bezier(.16,1,.3,1),margin .55s cubic-bezier(.16,1,.3,1),box-shadow .55s cubic-bezier(.16,1,.3,1);
+  }
+  .hero__avatars img:first-child{margin-left:0}
+  .hero__stat{display:flex;flex-direction:column;font-size:.9rem;line-height:1.25}
+  .hero__stat b{font-weight:600;font-size:1.05rem}
+  .hero__stat span{color:var(--muted)}
+
+  /* --- 6. CTA (pastille + double flèche au survol) ------------------------ */
+  .hero__cta{
+    margin-top:2.2rem;display:inline-flex;align-items:center;
+    background:none;border:0;padding:0;cursor:pointer;font:inherit;
+  }
+  .hero__cta-label,
+  .hero__cta-arrow{
+    background:var(--accent);color:var(--accent-fg);
+    transition:background .5s ease,color .5s ease;
+  }
+  .hero__cta-label{
+    border-radius:999px;padding:.85rem 1.5rem;
+    font-size:1rem;font-weight:500;
+  }
+  .hero__cta-arrow{
+    position:relative;display:flex;align-items:center;justify-content:center;
+    width:3.1rem;height:3.1rem;border-radius:50%;margin-left:.4rem;overflow:hidden;
+  }
+  .hero__cta-arrow svg{position:absolute;width:1.25rem;height:1.25rem;transition:transform .5s ease}
+  .hero__cta-arrow .a1{transform:translate(0,0)}
+  .hero__cta-arrow .a2{transform:translate(-180%,180%)}
+
+  /* --- 7. MARQUEE LOGOS --------------------------------------------------- */
+  .hero__marquee{position:relative;margin-top:2.5rem;overflow:hidden}
+  .hero__marquee::before,
+  .hero__marquee::after{
+    content:"";position:absolute;top:0;z-index:2;width:5rem;height:100%;pointer-events:none;
+  }
+  .hero__marquee::before{left:0;background:linear-gradient(to right,var(--bg),transparent)}
+  .hero__marquee::after{right:0;background:linear-gradient(to left,var(--bg),transparent)}
+  .hero__track{
+    display:flex;width:max-content;gap:0;
+    animation:h19-marquee 25s linear infinite;
+  }
+  .hero__track .logo{display:flex;align-items:center;justify-content:center;padding:0 1.25rem}
+  .hero__track .logo img{height:2rem;width:auto;opacity:.7}
+  .hero__marquee:hover .hero__track{animation-play-state:paused}
+  @keyframes h19-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+  /* Hover (souris fine seulement) */
+  @media (hover:hover) and (pointer:fine){
+    /* Accordéon avatars : l'avatar survolé grossit, passe au 1er plan
+       et écarte ses voisins (annulation du chevauchement de part et d'autre). */
+    .hero__avatars img:hover{
+      filter:grayscale(0);z-index:5;transform:scale(1.15);
+      box-shadow:0 .6rem 1.4rem rgba(16,19,20,.22);
+    }
+    /* L'avatar survolé pousse son voisin de droite */
+    .hero__avatars img:hover + img{margin-left:.35rem}
+    /* …et se décolle de son voisin de gauche */
+    .hero__avatars:has(img:hover) img:hover{margin-left:.35rem}
+    .hero__avatars img:first-child:hover{margin-left:0}
+
+    .hero__cta:hover .hero__cta-label,
+    .hero__cta:hover .hero__cta-arrow{background:var(--accent-fg);color:var(--accent)}
+    .hero__cta:hover .a1{transform:translate(180%,-180%)}
+    .hero__cta:hover .a2{transform:translate(0,0)}
+  }
+
+  /* --- 8. RESPONSIVE ------------------------------------------------------ */
+  /* Mobile (< 768px) : dégradés de bord du marquee réduits (logos plus visibles),
+     padding resserré, sécurité anti-débordement horizontal. */
+  @media (max-width:767px){
+    .hero{overflow-x:hidden}
+    .hero__marquee{margin-top:2rem}
+    .hero__marquee::before,.hero__marquee::after{width:1.75rem}
+    .hero__content{padding:1.75rem 1.25rem 2.25rem}
+    .hero__track .logo{padding:0 .9rem}
+  }
+  @media (min-width:768px){
+    .hero__grid{grid-template-columns:repeat(12,1fr);min-height:100dvh}
+    .hero__media{grid-column:span 6;height:100dvh}
+    .hero__content{grid-column:span 6;padding:5rem 2.5rem 5rem 3rem}
+  }
+
+  /* --- 9. ACCESSIBILITÉ --------------------------------------------------- */
+  @media (prefers-reduced-motion:reduce){
+    .hero__track{animation:none}
+    *{transition:none!important}
+    /* On garde le seul changement de couleur, pas de grossissement/écartement brusque */
+    .hero__avatars img:hover{transform:none;margin-left:-.75rem;box-shadow:none}
+    .hero__avatars img:first-child:hover{margin-left:0}
+    .hero__avatars img:hover + img{margin-left:-.75rem}
+  }
+
+  /* --- Animation d'entrée au chargement (cascade) ---------------------- */
+  @keyframes heroIn{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:translateY(0)}}
+  .hero__title{animation:heroIn .8s cubic-bezier(.16,1,.3,1) .06s backwards}
+  .hero__sub{animation:heroIn .8s cubic-bezier(.16,1,.3,1) .18s backwards}
+  .hero__proof{animation:heroIn .8s cubic-bezier(.16,1,.3,1) .30s backwards}
+  .hero__cta{animation:heroIn .8s cubic-bezier(.16,1,.3,1) .42s backwards}
+  @media (prefers-reduced-motion:reduce){.hero__title,.hero__sub,.hero__proof,.hero__cta{animation:none}}
+</style>
+</head>
+<body>
+
+<!-- ==========================================================================
+     STRUCTURE — contenu à personnaliser
+     ========================================================================== -->
+<section class="hero">
+  <div class="hero__grid">
+
+    <!-- Visuel plein bord -->
+    <div class="hero__media">
+      <img src="https://placehold.co/1920x1080" alt="Visuel" loading="eager" data-slot="visuel">
+    </div>
+
+    <!-- Contenu -->
+    <div class="hero__content">
+      <div class="hero__inner">
+
+        <h1 class="hero__title" data-slot="titre">Un titre clair pour une promesse forte.</h1>
+
+        <p class="hero__sub" data-slot="accroche">
+          Quelques lignes d'introduction, neutres et concises, pour préciser
+          l'intention et poser le contexte sans en dire trop.
+        </p>
+
+        <!-- Preuve sociale -->
+        <div class="hero__proof">
+          <div class="hero__avatars">
+            <img src="https://placehold.co/96x96" alt="">
+            <img src="https://placehold.co/96x96" alt="">
+            <img src="https://placehold.co/96x96" alt="">
+            <img src="https://placehold.co/96x96" alt="">
+          </div>
+          <div class="hero__stat">
+            <b>15&nbsp;000+</b>
+            <span>Équipes connectées</span>
+          </div>
+        </div>
+
+        <!-- CTA -->
+        <button class="hero__cta" type="button" data-slot="cta">
+          <span class="hero__cta-label" data-field="label">Démarrer un projet</span>
+          <span class="hero__cta-arrow">
+            <svg class="a1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+            <svg class="a2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+          </span>
+        </button>
+
+        <!-- Marquee logos -->
+        <div class="hero__marquee">
+          <div class="hero__track">
+            <!-- série 1 -->
+            <div class="logo"><img src="https://placehold.co/100x32?text=Logo+1" alt="Logo"></div>
+            <div class="logo"><img src="https://placehold.co/100x32?text=Logo+2" alt="Logo"></div>
+            <div class="logo"><img src="https://placehold.co/100x32?text=Logo+3" alt="Logo"></div>
+            <div class="logo"><img src="https://placehold.co/100x32?text=Logo+4" alt="Logo"></div>
+            <div class="logo"><img src="https://placehold.co/100x32?text=Logo+5" alt="Logo"></div>
+            <!-- série 2 (duplicata pour boucle continue) -->
+            <div class="logo"><img src="https://placehold.co/100x32?text=Logo+1" alt="Logo"></div>
+            <div class="logo"><img src="https://placehold.co/100x32?text=Logo+2" alt="Logo"></div>
+            <div class="logo"><img src="https://placehold.co/100x32?text=Logo+3" alt="Logo"></div>
+            <div class="logo"><img src="https://placehold.co/100x32?text=Logo+4" alt="Logo"></div>
+            <div class="logo"><img src="https://placehold.co/100x32?text=Logo+5" alt="Logo"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</section>
+
+</body>
+</html>

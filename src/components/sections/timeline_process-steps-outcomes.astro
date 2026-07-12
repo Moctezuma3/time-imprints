@@ -1,0 +1,205 @@
+---
+/**
+ * Integration — section `timeline_process-steps-outcomes` (NORMAL section, non-bleed).
+ * Phase 2 rules applied:
+ *   1. Local `:root` tokens deleted → inherits base tokens.
+ *   2. Local reset + Google-Fonts import + <head> markup deleted.
+ *   3. `min-height` / internal vertical padding REMOVED → the section gets the
+ *      uniform `--section-y` rhythm from the base layout (no data-bleed).
+ *   4. Hard-coded colors (#0d8f82, #e9e9e3…) → tokens (--accent, --accent-2,
+ *      --line, --shadow-color, color-mix from --fg/--bg).
+ *   5. Serif-italic word in the H2 wears the brand pink→cyan gradient.
+ *   6. Sequential scroll-reveal kept (queue + IntersectionObserver), gated
+ *      behind `:global(.wf-js)` so content stays visible without JS, and
+ *      scoped per root (`.ti-outcomes`) — safe with 0 or N instances.
+ */
+export interface Props {
+  titleLead?: string;
+  titleEm?: string;
+  gainsLabel?: string;
+  steps?: {
+    title: string;
+    text: string;
+    image: string;
+    alt?: string;
+    outcomes: string[];
+  }[];
+}
+const {
+  titleLead = "How it",
+  titleEm = "works",
+  gainsLabel = "What you get",
+  steps = [
+    {
+      title: "Pick your kit",
+      text: "Canvas or tee? Choose your kit, pick your paint colors — every box ships worldwide from Ukraine, gift-ready.",
+      image: "/img/paint-pots.jpg",
+      alt: "Full Time Imprints kit flat-lay with pearlescent paint pots and brushes",
+      outcomes: ["Order in a 1-minute Instagram DM", "Scratch-card discount in every box"],
+    },
+    {
+      title: "Make a mess together",
+      text: "Paint each other, press, peel back — and laugh at the result. Ten minutes, zero talent required.",
+      image: "/img/hero-3.jpg",
+      alt: "Man from behind wearing a black t-shirt with a white hug imprint",
+      outcomes: ["Skin-safe paint, washes right off", "Instructions included — zero art skills needed"],
+    },
+    {
+      title: "Keep it forever",
+      text: "The imprint dries into a keepsake only you can decode. Hang it, wear it, gift it — it's yours for good.",
+      image: "/img/kit-body.jpg",
+      alt: "Finished body imprint artwork on a large black canvas",
+      outcomes: ["Hang the canvas or wear the tee", "Machine-washable fabric paint"],
+    },
+  ],
+} = Astro.props;
+const pad = (n: number) => String(n + 1).padStart(2, "0");
+---
+
+<section class="ti-outcomes" aria-label="How it works">
+  <div class="inner">
+
+    <div class="head">
+      <h2 data-slot="titre">{titleLead} <em>{titleEm}</em></h2>
+    </div>
+
+    <div class="steps" data-slot="etapes">
+      {steps.map((s, i) => (
+        <article class="step wf-rev" data-slot-item>
+          <div class="step__media">
+            <img src={s.image} alt={s.alt ?? s.title} loading="lazy" width="800" height="600" data-field="image" />
+          </div>
+          <div class="step__body">
+            <span class="step__num" data-field="phase">Step {pad(i)}</span>
+            <h3 class="step__title" data-field="titre">{s.title}</h3>
+            <p class="step__desc" data-field="texte">{s.text}</p>
+            <p class="gains__label">{gainsLabel}</p>
+            <ul class="step__gains" data-field="resultats">
+              {s.outcomes.map((o) => (
+                <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>{o}</li>
+              ))}
+            </ul>
+          </div>
+        </article>
+      ))}
+    </div>
+
+  </div>
+</section>
+
+<style>
+  .ti-outcomes { --ease: cubic-bezier(.16,1,.3,1); --serif: Georgia, "Times New Roman", serif; color: var(--fg); }
+  .inner { width: 100%; max-width: var(--container); margin: 0 auto; padding-inline: var(--gutter); }
+
+  .head { max-width: 38rem; margin: 0 auto clamp(2.6rem, 6vw, 4rem); text-align: center; }
+  .head h2 { font-size: clamp(2rem, 4.4vw, 3rem); font-weight: 800; letter-spacing: -.025em; line-height: 1.08; }
+  .head em {
+    font-family: var(--serif); font-style: italic; font-weight: 400; padding-right: .06em;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+
+  .steps { display: flex; flex-direction: column; gap: clamp(2.4rem, 5vw, 3.6rem); }
+
+  .step { display: grid; grid-template-columns: 1fr; gap: clamp(1.4rem, 4vw, 2.6rem); align-items: center; }
+  @media (min-width: 760px) {
+    .step { grid-template-columns: 1fr 1fr; }
+    .step:nth-child(even) .step__media { order: 2; }
+  }
+
+  .step__media {
+    aspect-ratio: 4/3; border-radius: var(--radius); overflow: hidden; position: relative;
+    background: color-mix(in srgb, var(--fg) 8%, var(--bg));
+    border: 1px solid var(--line);
+    box-shadow: 0 28px 56px -36px var(--shadow-color);
+  }
+  .step__media img { width: 100%; height: 100%; object-fit: cover; }
+
+  .step__num {
+    font-size: .85rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--accent); display: inline-flex; align-items: center; gap: .7rem; margin-bottom: .9rem;
+  }
+  .step__title { font-size: clamp(1.4rem, 2.8vw, 1.9rem); font-weight: 700; letter-spacing: -.025em; line-height: 1.12; margin-bottom: .7rem; }
+  .step__desc { color: var(--muted); font-size: 1.02rem; line-height: 1.6; max-width: 32rem; }
+
+  .gains__label {
+    font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); margin: 1.2rem 0 .65rem;
+  }
+  .step__gains { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .55rem; }
+  .step__gains li { display: flex; align-items: flex-start; gap: .6rem; font-size: .96rem; font-weight: 500; }
+  .step__gains svg {
+    width: 1.1rem; height: 1.1rem; flex: 0 0 auto; margin-top: .15rem;
+    fill: none; stroke: var(--accent-2); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  /* Sequential reveal — gated behind .wf-js (added on <html> by the script)
+     so content is never hidden without JS. Exit mirror: escapes upward. */
+  :global(.wf-js) .step.wf-rev { opacity: 0; transform: translateY(28px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
+  :global(.wf-js) .step.wf-rev.is-in { opacity: 1; transform: none; }
+  :global(.wf-js) .step.wf-rev.wf-exit-up { opacity: 0; transform: translateY(-28px); }
+
+  @media (max-width: 640px) {
+    .step__desc { margin-inline: auto; }
+    .step__gains li { justify-content: center; text-align: left; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(.wf-js) .step.wf-rev,
+    :global(.wf-js) .step.wf-rev.wf-exit-up { opacity: 1; transform: none; transition: none; }
+  }
+</style>
+
+<script>
+  document.documentElement.classList.add("wf-js");
+  (function () {
+    const reduce = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+    document.querySelectorAll(".ti-outcomes").forEach((root) => {
+      const steps: Element[] = Array.prototype.slice.call(root.querySelectorAll(".step"));
+      if (!steps.length) return;
+
+      if (reduce || !("IntersectionObserver" in window)) {
+        steps.forEach((s) => s.classList.add("is-in"));
+        return;
+      }
+
+      const queue: Element[] = [];
+      let running = false;
+      const GAP = 220; /* delay between two reveals → sequential effect */
+
+      function pump() {
+        if (running || !queue.length) return;
+        running = true;
+        const el = queue.shift();
+        if (!el) { running = false; return; }
+        el.classList.add("is-in");
+        setTimeout(() => { running = false; pump(); }, GAP);
+      }
+
+      const io = new IntersectionObserver((entries) => {
+        entries
+          .slice()
+          .sort((a, b) => steps.indexOf(a.target) - steps.indexOf(b.target))
+          .forEach((e) => {
+            if (e.isIntersecting) {
+              /* ENTER: enqueue → sequential reveal */
+              e.target.classList.remove("wf-exit-up");
+              if (queue.indexOf(e.target) === -1 && !e.target.classList.contains("is-in")) {
+                queue.push(e.target);
+              }
+            } else {
+              /* EXIT mirror: passed upward → escapes UP; replays on scroll back */
+              const i = queue.indexOf(e.target);
+              if (i !== -1) queue.splice(i, 1);
+              e.target.classList.remove("is-in");
+              e.target.classList.toggle("wf-exit-up", e.boundingClientRect.top < 0);
+            }
+          });
+        pump();
+      }, { threshold: 0.25, rootMargin: "0px 0px -10% 0px" });
+
+      steps.forEach((s) => io.observe(s));
+    });
+  })();
+</script>

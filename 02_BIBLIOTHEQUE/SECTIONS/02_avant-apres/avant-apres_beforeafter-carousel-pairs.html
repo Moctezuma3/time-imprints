@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- lib:meta -->
+<meta name="lib:id" content="avant-apres_beforeafter-carousel-pairs">
+<meta name="lib:groupe" content="02-corps">
+<meta name="lib:categorie" content="avant-apres">
+<meta name="lib:intention" content="preuve-confiance">
+<meta name="lib:role" content="avant-apres">
+<meta name="lib:placement" content="section">
+<meta name="lib:niveau" content="2">
+<meta name="lib:titre" content="Carrousel de paires avant / après">
+<meta name="lib:tags" content="JS natif, carrousel, images">
+<meta name="lib:utilite" content="Carrousel faisant défiler un comparateur avant/après à poignée glissante (clip-path, drag + clavier) à la fois, avec flèches, points et défilement clavier. Parcourt de nombreuses réalisations dans un espace compact. JS vanilla, images à remplacer.">
+<meta name="lib:showcase" content="non">
+<meta name="lib:secteurs" content="artisanat, btp, beaute">
+<meta name="lib:slots" content="titre:titre:court; paires:liste:1-6">
+<meta name="lib:anatomie" content="base:3 paires avant/apres, 1 titre, 1 carrousel; titre:H2 avec eyebrow Galerie au dessus; images:par slide un comparateur avant/apres a poignee glissante (image apres revelee par clip-path) avec legende dessous; legendes:pastille Avant en sombre et pastille Apres en accent; carrousel:une paire visible a la fois, fleches precedent/suivant et points de pagination; cta:deux fleches rondes prev et next; animation:translation horizontale du track au changement de slide; hover:fleches passent en accent au survol; responsive:images empilees en 1 colonne sous 600px, fleches descendues en bas">
+<!-- /lib:meta -->
+<title>Carrousel de paires avant / après</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- ==========================================================================
+     STYLE — Avant/Après · Carrousel de paires : slides avant/après, flèches +
+     points. JS natif, un seul accent. Images à remplacer.
+     ========================================================================== -->
+<style>
+  /* 1. Tokens ------------------------------------------------------------ */
+  :root{
+    --bg:#fbfbfa;--surface:#ffffff;--fg:#16181d;--muted:#5c6270;--line:#e9e9e4;
+    --accent:#3b6ef5;--accent-soft:rgba(59,110,245,.1);
+    --maxw:64rem;
+    --font:"Outfit",ui-sans-serif,system-ui,-apple-system,sans-serif;
+    --ease:cubic-bezier(.16,1,.3,1);
+  }
+  /* 2. Reset ------------------------------------------------------------- */
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  button{font:inherit;cursor:pointer}
+  svg{display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  img{display:block;max-width:100%}
+  body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6}
+  /* 3. Layout ------------------------------------------------------------ */
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:clamp(3.5rem,8vw,6rem) clamp(1.4rem,5vw,3rem)}
+  .head{margin-bottom:1.6rem}
+  .car{position:relative;overflow:hidden;border-radius:1.2rem;border:1px solid var(--line);
+    touch-action:pan-y;cursor:grab;-webkit-user-select:none;user-select:none}
+  .car.grabbing{cursor:grabbing}
+  .track{display:flex;transition:transform .5s var(--ease)}
+  .slide{flex:0 0 100%}
+  /* Comparateur avant/après (poignée à glisser) */
+  .compare{--pos:50%;position:relative;overflow:hidden;aspect-ratio:16/9;background:#e6e8ec;
+    user-select:none;touch-action:none}
+  .compare__layer{position:absolute;inset:0}
+  .compare__layer img{width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none}
+  .compare__layer--after{clip-path:inset(0 0 0 var(--pos))}
+  .handle{position:absolute;top:0;bottom:0;left:var(--pos);width:2px;background:#fff;
+    transform:translateX(-1px);pointer-events:none;box-shadow:0 0 0 1px rgba(0,0,0,.08)}
+  .handle__btn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:2.6rem;height:2.6rem;border-radius:50%;border:0;background:var(--accent);color:#fff;
+    display:inline-flex;align-items:center;justify-content:center;pointer-events:auto;cursor:ew-resize;
+    box-shadow:0 8px 18px -8px rgba(16,18,24,.5);transition:transform .2s var(--ease)}
+  .handle__btn:hover{transform:translate(-50%,-50%) scale(1.06)}
+  .handle__btn svg{width:1rem;height:1rem}
+  .tag{position:absolute;top:.7rem;background:rgba(22,24,29,.78);color:#fff;
+    font-size:.72rem;font-weight:700;padding:.3rem .7rem;border-radius:99px;pointer-events:none}
+  .tag--before{left:.7rem}
+  .tag--after{right:.7rem;background:var(--accent)}
+  .caption{padding:.9rem 1.2rem;background:var(--surface);font-size:.92rem;color:var(--muted)}
+  .nav{position:absolute;top:38%;width:2.6rem;height:2.6rem;border-radius:50%;border:0;
+    background:rgba(255,255,255,.9);color:var(--fg);display:grid;place-items:center;
+    box-shadow:0 6px 18px rgba(16,18,24,.18);transition:.25s var(--ease)}
+  .nav svg{width:1.2rem;height:1.2rem}
+  .nav--prev{left:.8rem}.nav--next{right:.8rem}
+  .dots{display:flex;justify-content:center;gap:.5rem;margin-top:1.2rem}
+  .dot{width:.6rem;height:.6rem;border-radius:50%;border:0;background:var(--line);cursor:pointer;transition:.25s}
+  .dot[aria-current="true"]{background:var(--accent);transform:scale(1.3)}
+  /* 4. Typographie ------------------------------------------------------- */
+  .eyebrow{font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  .head h2{font-size:clamp(1.7rem,3.6vw,2.4rem);font-weight:800;letter-spacing:-.025em;margin-top:.5rem}
+  .caption b{color:var(--fg)}
+  /* 5. Accent / hover ---------------------------------------------------- */
+  @media (hover:hover) and (pointer:fine){
+    .nav:hover{background:var(--accent);color:#fff}
+  }
+  /* 6. Responsive -------------------------------------------------------- */
+  @media (max-width:600px){.compare{aspect-ratio:4/3}.nav{top:auto;bottom:4rem}}
+  /* 7. Accessibilité ----------------------------------------------------- */
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+  /* --- Animation d'entrée au chargement (cascade) ---------------------- */
+  /* Le carrousel translate .track (translateX) au load et au drag : on
+     n'anime pas les .slide (calcul cassé) mais l'en-tête + le bloc .car. */
+  @keyframes baIn{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+  .head{animation:baIn .7s cubic-bezier(.16,1,.3,1) .05s backwards}
+  .car{animation:baIn .6s cubic-bezier(.16,1,.3,1) .18s backwards}
+  .dots{animation:baIn .6s cubic-bezier(.16,1,.3,1) .28s backwards}
+  @media (prefers-reduced-motion:reduce){.head,.car,.dots{animation:none}}
+</style>
+</head>
+<body>
+
+<!-- ==========================================================================
+     STRUCTURE — carrousel de paires. Ajoutez/retirez des .slide (avant/après
+     + légende) ; le script gère flèches, points et clavier.
+     ========================================================================== -->
+<section class="wrap" aria-labelledby="t">
+  <header class="head">
+    <span class="eyebrow">Galerie</span>
+    <h2 id="t" data-slot="titre">Faites défiler nos transformations</h2>
+  </header>
+
+  <div class="car" aria-roledescription="carrousel">
+    <div class="track" id="track" data-slot="paires">
+      <div class="slide" role="group" aria-label="Réalisation 1 sur 3" data-slot-item>
+        <div class="compare">
+          <div class="compare__layer"><img src="https://placehold.co/960x540/cfd4dd/6b7280?text=Avant+1" alt="Réalisation 1 avant" loading="lazy" data-field="avant"></div>
+          <div class="compare__layer compare__layer--after"><img src="https://placehold.co/960x540/3b6ef5/ffffff?text=Apres+1" alt="Réalisation 1 après" loading="lazy" data-field="apres"></div>
+          <span class="tag tag--before">Avant</span>
+          <span class="tag tag--after">Après</span>
+          <div class="handle"><button type="button" class="handle__btn" role="slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" aria-label="Glisser pour comparer avant / après"><svg viewBox="0 0 24 24"><path d="M8 6L2 12l6 6M16 6l6 6-6 6"/></svg></button></div>
+        </div>
+        <p class="caption" data-field="texte"><b>Salle de bain — Lausanne.</b> Réfection complète, gain de luminosité.</p>
+      </div>
+      <div class="slide" role="group" aria-label="Réalisation 2 sur 3">
+        <div class="compare">
+          <div class="compare__layer"><img src="https://placehold.co/960x540/cfd4dd/6b7280?text=Avant+2" alt="Réalisation 2 avant" loading="lazy"></div>
+          <div class="compare__layer compare__layer--after"><img src="https://placehold.co/960x540/3b6ef5/ffffff?text=Apres+2" alt="Réalisation 2 après" loading="lazy"></div>
+          <span class="tag tag--before">Avant</span>
+          <span class="tag tag--after">Après</span>
+          <div class="handle"><button type="button" class="handle__btn" role="slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" aria-label="Glisser pour comparer avant / après"><svg viewBox="0 0 24 24"><path d="M8 6L2 12l6 6M16 6l6 6-6 6"/></svg></button></div>
+        </div>
+        <p class="caption"><b>Séjour — Vevey.</b> Ouverture des espaces et nouveau sol.</p>
+      </div>
+      <div class="slide" role="group" aria-label="Réalisation 3 sur 3">
+        <div class="compare">
+          <div class="compare__layer"><img src="https://placehold.co/960x540/cfd4dd/6b7280?text=Avant+3" alt="Réalisation 3 avant" loading="lazy"></div>
+          <div class="compare__layer compare__layer--after"><img src="https://placehold.co/960x540/3b6ef5/ffffff?text=Apres+3" alt="Réalisation 3 après" loading="lazy"></div>
+          <span class="tag tag--before">Avant</span>
+          <span class="tag tag--after">Après</span>
+          <div class="handle"><button type="button" class="handle__btn" role="slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" aria-label="Glisser pour comparer avant / après"><svg viewBox="0 0 24 24"><path d="M8 6L2 12l6 6M16 6l6 6-6 6"/></svg></button></div>
+        </div>
+        <p class="caption"><b>Entrée — Renens.</b> Rangements intégrés et éclairage repensé.</p>
+      </div>
+    </div>
+    <button class="nav nav--prev" id="prev" aria-label="Précédent"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <button class="nav nav--next" id="next" aria-label="Suivant"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+  </div>
+  <div class="dots" id="dots" role="tablist" aria-label="Choisir une réalisation"></div>
+</section>
+
+<!-- SCRIPT — carrousel (flèches, points, clavier) -->
+<script>
+  (function () {
+    var track = document.getElementById('track');
+    var slides = [].slice.call(track.children);
+    var dotsBox = document.getElementById('dots');
+    var i = 0;
+    slides.forEach(function (_, k){
+      var d = document.createElement('button');
+      d.className = 'dot'; d.setAttribute('role','tab');
+      d.setAttribute('aria-label', 'Réalisation ' + (k+1));
+      d.addEventListener('click', function (){ go(k); });
+      dotsBox.appendChild(d);
+    });
+    var dots = [].slice.call(dotsBox.children);
+    function go(n){
+      i = (n + slides.length) % slides.length;
+      track.style.transform = 'translateX(' + (-i*100) + '%)';
+      dots.forEach(function (d, k){ d.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+    }
+    document.getElementById('prev').addEventListener('click', function (){ go(i-1); });
+    document.getElementById('next').addEventListener('click', function (){ go(i+1); });
+    var car = document.querySelector('.car');
+    car.addEventListener('keydown', function (e){
+      if (e.key === 'ArrowLeft') go(i-1);
+      if (e.key === 'ArrowRight') go(i+1);
+    });
+
+    /* glissé tactile / souris (drag-to-swipe) */
+    var down = false, startX = 0, dx = 0, w = 0;
+    car.addEventListener('pointerdown', function (e){
+      if (e.target.closest('button')) return;          /* laisse les flèches cliquables */
+      down = true; startX = e.clientX; dx = 0; w = car.clientWidth;
+      track.style.transition = 'none'; car.classList.add('grabbing');
+      car.setPointerCapture(e.pointerId);
+    });
+    car.addEventListener('pointermove', function (e){
+      if (!down) return;
+      dx = e.clientX - startX;
+      track.style.transform = 'translateX(calc(' + (-i*100) + '% + ' + dx + 'px))';
+    });
+    function endDrag(){
+      if (!down) return;
+      down = false; car.classList.remove('grabbing'); track.style.transition = '';
+      if (Math.abs(dx) > w * 0.15) go(dx < 0 ? i+1 : i-1); else go(i);
+      dx = 0;
+    }
+    car.addEventListener('pointerup', endDrag);
+    car.addEventListener('pointercancel', endDrag);
+
+    go(0);
+  })();
+</script>
+
+<!-- SCRIPT — comparateurs avant/après (poignée glissante ; pas de clic-pour-sauter pour ne pas gêner le swipe du carrousel) -->
+<script>
+  (function () {
+    [].forEach.call(document.querySelectorAll('.compare'), function (cmp) {
+      var h = cmp.querySelector('.handle__btn');
+      if (!h) return;
+      var dragging = false;
+      function setPos (pct) {
+        pct = Math.max(0, Math.min(100, pct));
+        cmp.style.setProperty('--pos', pct + '%');
+        h.setAttribute('aria-valuenow', Math.round(pct));
+      }
+      function fromClient (x) {
+        var r = cmp.getBoundingClientRect();
+        setPos(((x - r.left) / r.width) * 100);
+      }
+      h.addEventListener('pointerdown', function (e) { dragging = true; h.setPointerCapture(e.pointerId); e.preventDefault(); e.stopPropagation(); });
+      document.addEventListener('pointermove', function (e) { if (dragging) fromClient(e.clientX); });
+      document.addEventListener('pointerup', function () { dragging = false; });
+      h.addEventListener('keydown', function (e) {
+        var cur = parseFloat(getComputedStyle(cmp).getPropertyValue('--pos')) || 50;
+        var step = e.shiftKey ? 10 : 2;
+        if (e.key === 'ArrowLeft')  { e.preventDefault(); e.stopPropagation(); setPos(cur - step); }
+        if (e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); setPos(cur + step); }
+        if (e.key === 'Home')       { e.preventDefault(); setPos(0); }
+        if (e.key === 'End')        { e.preventDefault(); setPos(100); }
+      });
+    });
+  })();
+</script>
+
+</body>
+</html>

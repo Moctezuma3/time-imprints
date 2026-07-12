@@ -1,0 +1,119 @@
+---
+/**
+ * Intégration — section `navbars_nav-sticky-hide` (placement: header).
+ * Placée dans le slot "header" du Layout. Règles Phase 2 :
+ *   :root + reset supprimés → tokens hérités ; couleurs en dur → tokens
+ *   (fond translucide = mix de --bg, indicateur = --accent, ombre = --shadow-color,
+ *   rayons = --radius) ; espaceur de démo retiré ; JS natif préservé.
+ */
+export interface Props {
+  logo?: string;
+  liens?: { label: string; href: string }[];
+}
+const {
+  logo = "MarqueSite",
+  liens = [
+    { label: "Accueil", href: "/" },
+    { label: "Véhicules", href: "/vehicules" },
+    { label: "Emplacements", href: "/emplacements" },
+    { label: "Contact", href: "/contact" },
+  ],
+} = Astro.props;
+---
+
+<header class="header" id="header">
+  <input type="checkbox" id="sh-toggle" aria-hidden="true" />
+  <div class="header__inner">
+    <a href="/" class="logo" data-slot="logo">{logo}</a>
+    <nav class="nav" aria-label="Navigation principale" data-slot="liens">
+      {liens.map((l) => <a href={l.href} data-slot-item>{l.label}</a>)}
+    </nav>
+    <label class="burger" for="sh-toggle" role="button" aria-label="Ouvrir le menu" tabindex="0"><span></span></label>
+  </div>
+</header>
+
+<style>
+  .header {
+    --ease: cubic-bezier(.16, 1, .3, 1);
+    position: fixed; top: 0; left: 0; right: 0; z-index: 30;
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+    transform: translateY(0);
+    transition: transform .35s var(--ease);
+  }
+  .header.is-hidden { transform: translateY(-100%); }
+  .header a { text-decoration: none; color: inherit; }
+
+  .header__inner { max-width: var(--container); margin: 0 auto; padding: 0 var(--gutter); display: flex; align-items: center; justify-content: space-between; height: 3.6rem; }
+  .logo { font-weight: 700; letter-spacing: -.015em; font-size: 1.3rem; }
+  .nav { position: relative; display: flex; gap: 1.4rem; }
+  .nav a { position: relative; z-index: 1; font-size: .92rem; font-weight: 500; color: var(--muted); transition: color .2s; }
+  .nav a:hover { color: var(--fg); }
+
+  .nav__ind { position: absolute; bottom: -.55rem; height: 2px; border-radius: 2px; background: var(--accent); width: 0; opacity: 0; transform: translateX(0); pointer-events: none; transition: transform .34s var(--ease), width .34s var(--ease), opacity .2s var(--ease); }
+
+  .burger { display: none; width: 2.5rem; height: 2.5rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); cursor: pointer; align-items: center; justify-content: center; flex: none; }
+  .burger span, .burger span::before, .burger span::after { content: ""; display: block; width: 1.05rem; height: 2px; background: var(--fg); transition: transform .25s var(--ease), opacity .2s; }
+  .burger span::before { transform: translateY(-.32rem); }
+  .burger span::after { transform: translateY(.32rem); }
+  #sh-toggle { position: absolute; opacity: 0; pointer-events: none; }
+
+  @media (max-width: 560px) {
+    .header__inner { position: relative; }
+    .burger { display: inline-flex; }
+    .nav { position: absolute; top: calc(100% + .5rem); right: 0; left: 0; flex-direction: column; align-items: stretch; gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: .3rem .9rem .8rem; box-shadow: 0 18px 40px -16px var(--shadow-color); opacity: 0; transform: translateY(-10px); pointer-events: none; transition: opacity .25s var(--ease), transform .3s var(--ease); }
+    .nav a { padding: .85rem .2rem; border-bottom: 1px solid var(--line); font-size: 1rem; text-align: left; }
+    .nav a:last-child { border-bottom: 0; }
+    .nav__ind { display: none; }
+    #sh-toggle:checked ~ .header__inner .nav { opacity: 1; transform: none; pointer-events: auto; }
+    #sh-toggle:checked ~ .header__inner .burger span { background: transparent; }
+    #sh-toggle:checked ~ .header__inner .burger span::before { transform: rotate(45deg); }
+    #sh-toggle:checked ~ .header__inner .burger span::after { transform: rotate(-45deg); }
+  }
+  @media (prefers-reduced-motion: reduce) { .header, .nav__ind { transition: none; } }
+
+  @keyframes navFade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes navIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+  .header { animation: navFade .6s var(--ease) backwards; }
+  .logo { animation: navIn .6s var(--ease) .15s backwards; }
+  .nav a:nth-child(1) { animation: navIn .6s var(--ease) .27s backwards; }
+  .nav a:nth-child(2) { animation: navIn .6s var(--ease) .33s backwards; }
+  .nav a:nth-child(3) { animation: navIn .6s var(--ease) .39s backwards; }
+  .nav a:nth-child(4) { animation: navIn .6s var(--ease) .45s backwards; }
+  .nav a:nth-child(5) { animation: navIn .6s var(--ease) .51s backwards; }
+  .nav a:nth-child(6) { animation: navIn .6s var(--ease) .57s backwards; }
+  .burger { animation: navIn .6s var(--ease) .51s backwards; }
+  @media (prefers-reduced-motion: reduce) { .header, .logo, .nav a, .burger { animation: none; } }
+</style>
+
+<script>
+  (function () {
+    const header = document.getElementById("header");
+    if (!header) return;
+    let last = window.scrollY;
+    const DELTA = 8, TOP_GUARD = 80;
+    window.addEventListener("scroll", function () {
+      const y = window.scrollY;
+      if (Math.abs(y - last) < DELTA) return;
+      if (y < TOP_GUARD) header.classList.remove("is-hidden");
+      else if (y - last > 0) header.classList.add("is-hidden");
+      else header.classList.remove("is-hidden");
+      last = y;
+    }, { passive: true });
+  })();
+  (function () {
+    const list = document.querySelector(".nav");
+    if (!list) return;
+    const links = [].slice.call(list.querySelectorAll("a")) as HTMLAnchorElement[];
+    if (links.length < 2) return;
+    const ind = document.createElement("span");
+    ind.className = "nav__ind"; ind.setAttribute("aria-hidden", "true");
+    list.appendChild(ind);
+    function move(a: HTMLElement) { ind.style.width = a.offsetWidth + "px"; ind.style.transform = "translateX(" + a.offsetLeft + "px)"; ind.style.opacity = "1"; }
+    function hide() { ind.style.opacity = "0"; }
+    links.forEach((a) => { a.addEventListener("mouseenter", () => move(a)); a.addEventListener("focus", () => move(a)); });
+    list.addEventListener("mouseleave", hide);
+    list.addEventListener("focusout", (e: FocusEvent) => { if (!list.contains(e.relatedTarget as Node)) hide(); });
+  })();
+</script>

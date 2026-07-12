@@ -1,0 +1,224 @@
+---
+/**
+ * Integration — section `stats_stats-big-number` (normal section, non bleed).
+ * Phase 2 rules applied:
+ *   1. Local :root tokens, reset, body styles and Google-Fonts import removed → base tokens.
+ *   2. `min-height:100dvh` + vertical padding removed → uniform `--section-y` rhythm;
+ *      no background override (the site is already dark).
+ *   3. Hard-coded colors → theme tokens (spot halo mixed from --fg).
+ *   4. Count-up locale switched to en-US (58,188 style separators); no-JS fallback
+ *      keeps the final formatted values in the HTML.
+ *   5. Max size of the giant digits lowered (12rem → 9rem) so the 6-digit
+ *      follower count fits its half-row column at 1200px.
+ *   6. JS scoped to `.ti-stats` roots (safe with 0 or n instances);
+ *      hidden reveal state gated behind `:global(.wf-js)`.
+ */
+export interface Props {
+  eyebrow?: string;
+  title?: string;
+  intro?: string;
+  stats?: { value: number; suffix?: string; label: string; text: string }[];
+}
+const {
+  eyebrow = "The receipts",
+  title = "Big feelings, bigger numbers.",
+  intro = "We started pressing paint onto canvas in 2023. The internet kept count.",
+  stats = [
+    {
+      value: 58188,
+      label: "Instagram followers",
+      text: "A community that tags us in their messiest, happiest evenings — and keeps growing every week.",
+    },
+    {
+      value: 682,
+      label: "Posts of pure mess",
+      text: "Hands, hugs, kisses and full-body art, documented since 2023. Scroll at your own risk — it's contagious.",
+    },
+    {
+      value: 197,
+      suffix: "K",
+      label: "TikTok likes",
+      text: "Turns out watching people paint each other never gets old.",
+    },
+    {
+      value: 5,
+      label: "Kits to choose from",
+      text: "Hands, kisses, hugs and bodies — on canvas or cotton, from 15 to 35 €.",
+    },
+  ],
+} = Astro.props;
+const fmt = (n: number) => n.toLocaleString("en-US");
+---
+
+<section class="ti-stats">
+  <div class="stats__inner" data-slot="chiffres">
+
+    <header class="stats__head">
+      <span class="stats__eyebrow">{eyebrow}</span>
+      <h2 class="stats__title" data-slot="titre">{title}</h2>
+      <p class="stats__sub">{intro}</p>
+    </header>
+
+    {stats.map((s, i) => (
+      <article class:list={["row", "wf-rev", { "row--rev": i % 2 === 1 }]} data-slot-item>
+        <span class="row__spot" aria-hidden="true"></span>
+        <div class="row__num">
+          <span data-to={String(s.value)} data-field="valeur" data-keep>{fmt(s.value)}</span>
+          {s.suffix && <span class="row__suffix" data-field="suffixe">{s.suffix}</span>}
+        </div>
+        <div class="row__copy">
+          <span class="row__label" data-field="libelle">{s.label}</span>
+          <p class="row__desc" data-field="description">{s.text}</p>
+        </div>
+      </article>
+    ))}
+
+  </div>
+</section>
+
+<style>
+  .ti-stats {
+    --ease: cubic-bezier(.16,1,.3,1);
+    --easeBack: cubic-bezier(.34,1.56,.64,1);
+    color: var(--fg);
+  }
+  .stats__inner { width: 100%; max-width: var(--container); margin: 0 auto; padding-inline: var(--gutter); }
+  .stats__head { max-width: 42rem; margin-bottom: clamp(3rem, 6vw, 5rem); }
+
+  .row {
+    position: relative; isolation: isolate;
+    display: grid; gap: clamp(2rem, 4vw, 3.5rem);
+    grid-template-columns: 1fr;
+    padding-block: clamp(2rem, 4vw, 3rem); padding-inline: clamp(0rem, 2vw, 1.5rem);
+    border-top: 1px solid var(--line);
+  }
+  .row:last-child { border-bottom: 1px solid var(--line); }
+  @media (min-width: 760px) {
+    .row { grid-template-columns: 1fr 1fr; align-items: center; }
+    .row--rev .row__copy { order: -1; }
+  }
+  /* light spot following the cursor (bright halo on the dark theme) */
+  .row__spot {
+    position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--fg) 7%, transparent), transparent 60%);
+    opacity: 0; transition: opacity .4s var(--ease);
+  }
+  .row > :not(.row__spot) { position: relative; z-index: 1; }
+  @media (hover: hover) and (pointer: fine) {
+    .row:hover .row__spot { opacity: 1; }
+  }
+
+  .row__num {
+    font-size: clamp(3.5rem, 10vw, 9rem); font-weight: 800;
+    line-height: .85; letter-spacing: -.05em;
+    font-variant-numeric: tabular-nums; will-change: filter;
+    display: flex; align-items: baseline; gap: .3rem;
+  }
+  .row__suffix { font-size: .4em; color: var(--muted); font-weight: 500; letter-spacing: -.02em; }
+
+  /* dramatic reveal on scroll (rise + scale + blur fading, spring) */
+  :global(.wf-js) .wf-rev {
+    opacity: 0; transform: translateY(46px) scale(.93); filter: blur(6px);
+    transition: opacity .8s var(--ease), transform .9s var(--easeBack), filter .8s var(--ease);
+  }
+  :global(.wf-js) .wf-rev.is-in { opacity: 1; transform: none; filter: none; }
+  :global(.wf-js) .row.wf-rev { transition-delay: var(--d, 0s); }
+  :global(.wf-js) .row:nth-of-type(1) { --d: .05s; }
+  :global(.wf-js) .row:nth-of-type(2) { --d: .12s; }
+  :global(.wf-js) .row:nth-of-type(3) { --d: .19s; }
+  :global(.wf-js) .row:nth-of-type(4) { --d: .26s; }
+
+  .row__copy { max-width: 34rem; }
+  .row__label {
+    font-size: .78rem; font-weight: 500; letter-spacing: .2em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: .9rem;
+    display: inline-flex; align-items: center; gap: .6rem;
+  }
+  .row__desc { font-size: clamp(1rem, 1.4vw, 1.15rem); line-height: 1.65; color: var(--muted); }
+
+  .stats__eyebrow {
+    display: block; font-size: .78rem; font-weight: 500; letter-spacing: .18em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 1.1rem;
+  }
+  .stats__title { font-size: clamp(2rem, 4.4vw, 3rem); font-weight: 800; line-height: 1.08; letter-spacing: -.02em; margin-bottom: 1rem; }
+  .stats__sub { font-size: 1.05rem; line-height: 1.65; color: var(--muted); }
+
+  @media (max-width: 640px) {
+    .row__num { justify-content: center; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+    :global(.wf-js) .wf-rev { opacity: 1 !important; transform: none !important; filter: none !important; }
+    .row__num { filter: none !important; }
+    .row__spot { display: none; }
+  }
+</style>
+
+<script>
+  document.documentElement.classList.add("wf-js");
+  (() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+    /* dramatic count-up: digits climb while a 6px blur dissolves, synced on the easing */
+    const countUp = (el: HTMLElement) => {
+      const raw = el.getAttribute("data-to") || "";
+      const to = parseFloat(raw);
+      if (isNaN(to)) return;
+      const dec = (raw.split(".")[1] || "").length;
+      const num = (el.closest(".row__num") as HTMLElement) || el;   /* blur target */
+      const fmt = (v: number) =>
+        v.toLocaleString("en-US", { minimumFractionDigits: dec, maximumFractionDigits: dec });
+      if (reduce) { el.textContent = fmt(to); return; }
+      let t0: number | null = null;
+      const dur = 1800, BLUR = 6;
+      el.textContent = fmt(0);
+      num.style.filter = "blur(" + BLUR + "px)";
+      const step = (ts: number) => {
+        if (t0 === null) t0 = ts;
+        const p = Math.min((ts - t0) / dur, 1);
+        const e = 1 - Math.pow(1 - p, 3);          /* easeOutCubic */
+        el.textContent = fmt(to * e);
+        num.style.filter = "blur(" + (BLUR * (1 - e)).toFixed(2) + "px)";
+        if (p < 1) requestAnimationFrame(step);
+        else { el.textContent = fmt(to); num.style.filter = ""; }
+      };
+      requestAnimationFrame(step);
+    };
+
+    document.querySelectorAll<HTMLElement>(".ti-stats").forEach((root) => {
+      const revEls = Array.from(root.querySelectorAll<HTMLElement>(".wf-rev"));
+      const nums = Array.from(root.querySelectorAll<HTMLElement>("[data-to]"));
+
+      if (!("IntersectionObserver" in window)) {
+        revEls.forEach((el) => el.classList.add("is-in"));
+        nums.forEach(countUp);
+        return;
+      }
+      if (reduce) {
+        revEls.forEach((el) => el.classList.add("is-in"));
+        nums.forEach(countUp);
+      } else {
+        const io = new IntersectionObserver((entries, obs) => {
+          entries.forEach((en) => {
+            if (!en.isIntersecting) return;
+            en.target.classList.add("is-in");
+            en.target.querySelectorAll<HTMLElement>("[data-to]").forEach(countUp);
+            obs.unobserve(en.target);
+          });
+        }, { threshold: 0.35 });
+        revEls.forEach((el) => io.observe(el));
+      }
+
+      /* light spot following the cursor (fine pointer, honors reduced motion) */
+      if (reduce || !window.matchMedia("(hover:hover) and (pointer:fine)").matches) return;
+      root.querySelectorAll<HTMLElement>(".row").forEach((row) => {
+        row.addEventListener("mousemove", (e: MouseEvent) => {
+          const r = row.getBoundingClientRect();
+          row.style.setProperty("--mx", (((e.clientX - r.left) / r.width) * 100).toFixed(1) + "%");
+          row.style.setProperty("--my", (((e.clientY - r.top) / r.height) * 100).toFixed(1) + "%");
+        });
+      });
+    });
+  })();
+</script>

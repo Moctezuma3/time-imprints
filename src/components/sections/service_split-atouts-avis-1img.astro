@@ -1,0 +1,210 @@
+---
+/**
+ * Integration — section `service_split-atouts-avis-1img` (normal section, non bleed).
+ * Phase 2 rules applied:
+ *   1. Local :root tokens, reset, body styles and Google-Fonts import removed → base tokens.
+ *   2. Vertical padding removed → uniform `--section-y` rhythm from the base layout.
+ *   3. Hard-coded colors → theme tokens; glass review card rebuilt for the dark theme.
+ *   4. Avatars row replaced by a real testimonial (quote + author + 5 stars).
+ *   5. CTA reuses the global .btn / .btn--primary classes.
+ *   6. JS scoped to `.ti-about-split` roots (safe with 0 or n instances);
+ *      reveal state gated behind `:global(.wf-js)` so no-JS users see everything.
+ */
+export interface Props {
+  eyebrow?: string;
+  title?: string;
+  lead?: string;
+  strengths?: string[];
+  ctaLabel?: string;
+  ctaHref?: string;
+  image?: string;
+  imageAlt?: string;
+  quote?: string;
+  quoteAuthor?: string;
+}
+const {
+  eyebrow = "Our story",
+  title = "Made in Ukraine. Felt everywhere.",
+  lead = "Time Imprints started in 2023 with a simple idea: the best gift isn't a thing — it's a moment you get to keep. Our kits turn an evening together into an artwork: your hands, your hugs, your kisses, printed in pearlescent color on canvas or cotton.",
+  strengths = [
+    "Skin-safe, hypoallergenic paint — safe for kids and pets",
+    "Everything in the box: canvas or tee, paints, brushes, instructions",
+    "Fast, tracked shipping worldwide",
+  ],
+  ctaLabel = "Meet the kits",
+  ctaHref = "/kits/",
+  image = "/img/about-couple.jpg",
+  imageAlt = "Couple kissing in matching hug-print t-shirts",
+  quote = "It's not just a gift. It's a memory we made together.",
+  quoteAuthor = "Yuliia",
+} = Astro.props;
+---
+
+<section class="ti-about-split">
+  <div class="pr__wrap">
+
+    <!-- text column -->
+    <div class="pr__text">
+      <div class="pr__intro">
+        <span class="pr__eyebrow" data-reveal data-field="surtitre">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.4 5.4L20 8l-4 4 1 6-5-2.8L7 18l1-6-4-4 5.6-.6L12 2z"/></svg>
+          {eyebrow}
+        </span>
+        <h2 class="pr__title" data-reveal data-field="titre">{title}</h2>
+        <p class="pr__lead" data-reveal data-field="accroche">{lead}</p>
+      </div>
+
+      <div class="pr__points">
+        <ul class="pr__list" data-slot="atouts">
+          {strengths.map((s) => (
+            <li class="pr__item" data-slot-item data-reveal>
+              <span class="pr__check"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></span>
+              <span data-field="atout">{s}</span>
+            </li>
+          ))}
+        </ul>
+
+        <a class="btn btn--primary pr__cta" href={ctaHref} data-reveal data-field="cta">
+          {ctaLabel}
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- media column: single image + floating review card -->
+    <div class="pr__media">
+      <figure class="pr__fig" data-reveal>
+        <img src={image} alt={imageAlt} loading="lazy" data-field="image" />
+      </figure>
+
+      <figure class="pr__card" data-reveal style="--d:.16s">
+        <blockquote class="pr__quote">
+          <p data-field="avis-texte">&ldquo;{quote}&rdquo;</p>
+        </blockquote>
+        <figcaption class="pr__rate">
+          <span class="pr__author" data-field="note">{quoteAuthor}</span>
+          <div class="pr__stars" role="img" aria-label="Rated 5 out of 5">
+            {[0, 1, 2, 3, 4].map(() => (
+              <svg class="on" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.9 6.3 6.9.7-5.1 4.6 1.4 6.8L12 17.8 5.9 20.4l1.4-6.8L2.2 9l6.9-.7L12 2z" /></svg>
+            ))}
+          </div>
+        </figcaption>
+      </figure>
+    </div>
+
+  </div>
+</section>
+
+<style>
+  .ti-about-split { --ease: cubic-bezier(.16,1,.3,1); color: var(--fg); }
+  .pr__wrap {
+    width: 100%; max-width: var(--container); margin: 0 auto; padding-inline: var(--gutter);
+    display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.12fr);
+    gap: clamp(2rem, 5vw, 5rem); align-items: center;
+  }
+
+  /* ---------- text column ---------- */
+  .pr__eyebrow { display: inline-flex; align-items: center; gap: .6rem; font-size: .92rem; font-weight: 600; color: var(--accent); }
+  .pr__eyebrow svg { width: 1.5rem; height: 1.5rem; stroke: var(--accent); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .pr__title { margin-top: 1.3rem; font-size: clamp(1.9rem, 3.6vw, 3rem); font-weight: 700; line-height: 1.12; letter-spacing: -.02em; }
+  .pr__lead { margin-top: 1.35rem; font-size: clamp(1rem, 1.25vw, 1.12rem); line-height: 1.65; color: var(--muted); max-width: 34rem; }
+
+  .pr__list { list-style: none; padding: 0; margin: 2rem 0 0; display: flex; flex-direction: column; gap: 1.05rem; }
+  .pr__item { display: flex; align-items: center; gap: .85rem; font-size: 1.05rem; font-weight: 500; }
+  .pr__check {
+    flex: none; width: 1.6rem; height: 1.6rem; border-radius: 50%; border: 1px solid var(--line);
+    display: grid; place-items: center; transition: background .3s var(--ease), border-color .3s var(--ease);
+  }
+  .pr__check svg { width: .85rem; height: .85rem; fill: none; stroke: var(--fg); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; transition: stroke .3s var(--ease); }
+  .pr__item:hover .pr__check { background: var(--accent); border-color: var(--accent); }
+  .pr__item:hover .pr__check svg { stroke: var(--accent-contrast); }
+
+  .pr__cta { margin-top: 2.4rem; }
+  .pr__cta svg { width: 1.1rem; height: 1.1rem; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: transform .25s var(--ease); }
+  @media (hover: hover) and (pointer: fine) {
+    .pr__cta:hover { transform: translateY(-2px); }
+    .pr__cta:hover svg { transform: translateX(4px); }
+  }
+
+  /* ---------- media column: ONE image + floating review card ---------- */
+  .pr__media { position: relative; }
+  .pr__fig { position: relative; overflow: hidden; border-radius: var(--radius); background: var(--surface); aspect-ratio: 4/4.4; margin: 0; }
+  .pr__fig img { width: 100%; height: 100%; object-fit: cover; transition: transform .8s var(--ease); }
+  @media (hover: hover) and (pointer: fine) { .pr__fig:hover img { transform: scale(1.05); } }
+
+  .pr__card {
+    position: absolute; left: clamp(.8rem, 2vw, 1.4rem); bottom: clamp(.8rem, 2vw, 1.4rem);
+    max-width: min(90%, 22rem); margin: 0;
+    background: color-mix(in srgb, var(--bg) 72%, transparent);
+    backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    border: 1px solid var(--line); box-shadow: 0 22px 46px -22px var(--shadow-color);
+    border-radius: var(--radius); padding: 1.1rem 1.25rem; display: flex; flex-direction: column; gap: .85rem;
+  }
+  .pr__quote { margin: 0; }
+  .pr__quote p { font-size: .95rem; line-height: 1.45; color: var(--fg); }
+  .pr__rate { display: flex; align-items: center; gap: .8rem; }
+  .pr__author { font-size: .88rem; font-weight: 600; color: var(--muted); }
+  .pr__stars { display: flex; gap: .1rem; margin-left: auto; }
+  .pr__stars svg { width: 1.05rem; height: 1.05rem; }
+  .pr__stars .on { fill: var(--accent); }
+
+  /* ---------- reveal on scroll (gated behind .wf-js on <html>) ---------- */
+  :global(.wf-js) [data-reveal] {
+    opacity: 0; transform: translateY(26px);
+    transition: opacity .7s var(--ease), transform .7s var(--ease); transition-delay: var(--d, 0s);
+  }
+  :global(.wf-js) .pr__fig[data-reveal] { transform: translateY(26px) scale(.97); }
+  .is-in [data-reveal] { opacity: 1; transform: none; }
+
+  /* ---------- responsive ---------- */
+  /* mobile: image between the lead and the bullets; review card pulled out of the image */
+  @media (max-width: 900px) {
+    .pr__wrap { display: flex; flex-direction: column; gap: 1.6rem; }
+    .pr__text, .pr__media { display: contents; }
+    .pr__intro { order: 1; }
+    .pr__fig { order: 2; aspect-ratio: 4/3.4; }
+    .pr__points { order: 3; }
+    .pr__card {
+      order: 4; position: static; left: auto; bottom: auto; margin: 0; max-width: 100%;
+      background: var(--surface); border: 1px solid var(--line);
+      backdrop-filter: none; -webkit-backdrop-filter: none;
+      box-shadow: 0 12px 26px -18px var(--shadow-color);
+    }
+  }
+  @media (max-width: 640px) {
+    .pr__item { justify-content: center; }
+    .pr__rate { justify-content: center; }
+    .pr__stars { margin-left: 0; }
+  }
+  @media (max-width: 560px) {
+    .pr__card { padding: .85rem 1rem; gap: .6rem; }
+    .pr__quote p { font-size: .85rem; line-height: 1.4; }
+    .pr__author { font-size: .82rem; }
+    .pr__stars svg { width: .9rem; height: .9rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(.wf-js) [data-reveal] { opacity: 1 !important; transform: none !important; transition: none; }
+    .pr__fig img { transition: none; }
+  }
+</style>
+
+<script>
+  document.documentElement.classList.add("wf-js");
+  (() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+    document.querySelectorAll<HTMLElement>(".ti-about-split").forEach((section) => {
+      const items = Array.from(section.querySelectorAll<HTMLElement>("[data-reveal]"));
+      items.forEach((el, i) => {
+        if (!el.style.getPropertyValue("--d")) el.style.setProperty("--d", (i * 0.07).toFixed(2) + "s");
+      });
+      if (reduce || !("IntersectionObserver" in window)) { section.classList.add("is-in"); return; }
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) { section.classList.add("is-in"); io.disconnect(); }
+        });
+      }, { threshold: 0.2 });
+      io.observe(section);
+    });
+  })();
+</script>

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- lib:meta -->
+<meta name="lib:id" content="heros_hero-minimalist-circle">
+<meta name="lib:groupe" content="01-header">
+<meta name="lib:categorie" content="heros">
+<meta name="lib:intention" content="ouverture-captation">
+<meta name="lib:placement" content="section">
+<meta name="lib:niveau" content="2">
+<meta name="lib:titre" content="Minimaliste (portrait + cercle accent)">
+<meta name="lib:tags" content="JS natif, minimaliste, éditorial, tilt 3D, parallaxe">
+<meta name="lib:utilite" content="Portrait centré sur un cercle accent, typo XXL, nav épurée et footer social. Marques mode/studio/personal branding. Animations d'entrée CSS, tilt 3D du portrait au survol, JS natif.">
+<meta name="lib:showcase" content="non">
+<meta name="lib:secteurs" content="polyvalent">
+<meta name="lib:slots" content="titre:titre:court; accroche:texte:moyen; cta:cta:1-2; visuel:media:1">
+<meta name="lib:anatomie" content="base:1 titre, 1 paragraphe d intro, 1 portrait, 1 lien En savoir plus, 4 liens sociaux; layout:plein écran (100dvh) en 3 zones verticales (en-tête, contenu central, pied), contenu central en grille 3 colonnes dès 768px (intro, portrait, titre); titre:H1 géant (clamp 3.4 à 8rem), poids 800, bas de casse, coupé sur 2 lignes par br; sous-titre:court paragraphe neutre, largeur max 30 caractères; cta:un seul lien souligné En savoir plus (pas de bouton plein); images:1 portrait posé sur un grand cercle accent (clamp 260 à 500px), portrait en scale 1.18 ancré en bas; nav:logo + menu de 4 liens en majuscules espacées, remplacé par un burger sous 768px; animation:entrée CSS en cascade (cercle qui pop, portrait qui monte, textes en fondu vers le haut décalés); hover:tilt 3D du portrait suivant la souris (max 10 degrés, JS natif) actif souris fine seulement; responsive:sous 768px tout passe en colonne centrée dans l ordre titre puis portrait puis intro/description, et le menu devient burger; a11y:tilt et animations désactivés en prefers-reduced-motion">
+<!-- /lib:meta -->
+<title>Minimaliste (portrait + cercle accent)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;800&display=swap" rel="stylesheet">
+
+<!-- ==========================================================================
+     STYLE — Hero 18 · Minimaliste (portrait centré sur cercle, typo XXL)
+     Re-skin rapide : modifie uniquement le bloc :root (section 1).
+     Animations d'entrée en CSS pur (ex-framer-motion), no-JS friendly.
+     ========================================================================== -->
+<style>
+  /* --- 1. TOKENS ---------------------------------------------------------- */
+  :root{
+    --bg:#f5f4f0;
+    --fg:#101012;
+    --muted:#6c6c74;
+    --accent:#eab308;            /* cercle / halo derrière le portrait */
+    --font:"Outfit",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --maxw:1280px;
+  }
+
+  /* --- 2. RESET ----------------------------------------------------------- */
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+  /* --- 3. LAYOUT ---------------------------------------------------------- */
+  .hero{
+    position:relative;min-height:100dvh;width:100%;
+    display:flex;flex-direction:column;justify-content:space-between;
+    align-items:center;
+    padding:2rem 1.5rem;
+    background:var(--bg);color:var(--fg);font-family:var(--font);
+    overflow:hidden;
+  }
+  .hero__top,.hero__bottom{
+    z-index:30;width:100%;max-width:var(--maxw);
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .hero__main{
+    position:relative;width:100%;max-width:var(--maxw);flex:1;
+    display:grid;grid-template-columns:1fr;align-items:center;
+    gap:2rem;padding-block:2rem;
+  }
+
+  /* --- 4. HEADER / NAV ---------------------------------------------------- */
+  .hero__logo{font-size:1.25rem;font-weight:700;letter-spacing:.04em}
+  .hero__nav{display:none;gap:2rem;align-items:center}
+  .hero__nav a{
+    font-size:.78rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;
+    color:color-mix(in srgb,var(--fg) 60%,transparent);
+    text-decoration:none;transition:color .25s ease;
+  }
+  .hero__burger{
+    display:flex;flex-direction:column;gap:6px;
+    background:none;border:0;cursor:pointer;padding:.2rem;
+  }
+  .hero__burger span{display:block;height:2px;width:24px;background:var(--fg);border-radius:2px}
+  .hero__burger span:last-child{width:20px}
+
+  /* --- 5. CONTENU PRINCIPAL ----------------------------------------------- */
+  /* colonne gauche : texte d'intro */
+  .hero__intro{order:3;text-align:center}   /* mobile : description en dernier */
+  .hero__intro p{
+    margin-inline:auto;max-width:30ch;
+    font-size:.92rem;line-height:1.65;
+    color:color-mix(in srgb,var(--fg) 80%,transparent);
+  }
+  .hero__more{
+    display:inline-block;margin-top:1.1rem;
+    font-size:.9rem;font-weight:500;color:var(--fg);
+    text-decoration:underline;text-underline-offset:4px;
+  }
+
+  /* colonne centrale : portrait sur cercle */
+  .hero__visual{
+    order:2;position:relative;perspective:900px;   /* mobile : image au milieu */
+    display:flex;align-items:center;justify-content:center;
+    min-height:clamp(300px,45vh,500px);
+  }
+  .hero__circle{
+    position:absolute;z-index:0;border-radius:50%;
+    width:clamp(260px,70vw,500px);aspect-ratio:1;
+    background:var(--accent);
+  }
+  /* Conteneur de tilt : reçoit le transform 3D au survol (JS).
+     Séparé du portrait pour ne PAS entrer en conflit avec son
+     animation d'entrée (h18-rise) ni son scale(1.18). */
+  .hero__tilt{
+    position:relative;z-index:10;
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .4s cubic-bezier(.16,1,.3,1);
+    will-change:transform;transform-style:preserve-3d;
+  }
+  .hero__portrait{
+    position:relative;z-index:10;
+    width:clamp(190px,48vw,290px);height:auto;
+    object-fit:cover;transform:scale(1.18);transform-origin:bottom;
+  }
+
+  /* colonne droite : titre géant */
+  .hero__display{order:1;text-align:center}   /* mobile : titre en premier */
+  .hero__display h1{
+    font-size:clamp(3.4rem,15vw,8rem);font-weight:800;
+    line-height:.92;letter-spacing:-.03em;
+  }
+
+  /* --- 6. FOOTER ---------------------------------------------------------- */
+  .hero__social{display:flex;gap:1.1rem;align-items:center}
+  .hero__social a{
+    color:color-mix(in srgb,var(--fg) 60%,transparent);
+    display:inline-flex;transition:color .25s ease;
+  }
+  .hero__social svg{width:20px;height:20px;display:block}
+  .hero__loc{font-size:.85rem;font-weight:500;color:color-mix(in srgb,var(--fg) 80%,transparent)}
+
+  /* Hover (souris fine seulement) */
+  @media (hover:hover) and (pointer:fine){
+    .hero__nav a:hover,
+    .hero__social a:hover{color:var(--fg)}
+    .hero__more{transition:opacity .2s ease}
+    .hero__more:hover{opacity:.7}
+  }
+
+  /* --- 7. RESPONSIVE ------------------------------------------------------ */
+  @media (min-width:768px){
+    .hero{padding:3rem}
+    .hero__nav{display:flex}
+    .hero__burger{display:none}
+    .hero__main{grid-template-columns:1fr 1.1fr 1fr;gap:1rem;padding-block:0}
+    .hero__intro{order:1;text-align:left}
+    .hero__intro p{margin-inline:0}
+    .hero__visual{order:2;min-height:60vh}
+    .hero__display{order:3;text-align:left}
+  }
+
+  /* --- 8. ANIMATIONS D'ENTRÉE (ex-framer-motion) -------------------------- */
+  @keyframes h18-fade-up{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes h18-fade-left{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
+  @keyframes h18-fade-right{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+  @keyframes h18-pop{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+  @keyframes h18-rise{from{opacity:0;transform:translateY(50px) scale(1.18)}to{opacity:1;transform:translateY(0) scale(1.18)}}
+
+  .hero__logo{animation:h18-fade-left .5s both}
+  .hero__burger{animation:h18-fade-right .5s both}
+  .hero__circle{animation:h18-pop .8s cubic-bezier(.22,1,.36,1) .2s both}
+  .hero__portrait{animation:h18-rise 1s cubic-bezier(.22,1,.36,1) .4s both}
+  .hero__intro{animation:h18-fade-up .6s ease 1s both}
+  .hero__display{animation:h18-fade-up .6s ease 1.2s both}
+  .hero__social{animation:h18-fade-up .5s ease 1.2s both}
+  .hero__loc{animation:h18-fade-up .5s ease 1.3s both}
+
+  /* --- 9. ACCESSIBILITÉ --------------------------------------------------- */
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+    .hero__portrait{transform:scale(1.18)}
+    .hero__tilt{transform:none!important}   /* pas de tilt */
+  }
+</style>
+</head>
+<body>
+
+<!-- ==========================================================================
+     STRUCTURE — contenu à personnaliser
+     ========================================================================== -->
+<section class="hero">
+
+  <!-- En-tête -->
+  <header class="hero__top">
+    <div class="hero__logo">Logo</div>
+    <nav class="hero__nav">
+      <a href="#">Lien</a>
+      <a href="#">Lien</a>
+      <a href="#">Lien</a>
+      <a href="#">Lien</a>
+    </nav>
+    <button class="hero__burger" aria-label="Ouvrir le menu">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+
+  <!-- Contenu central -->
+  <div class="hero__main">
+
+    <div class="hero__intro">
+      <p data-slot="accroche">Quelques mots d'introduction, courts et neutres, pour poser le contexte sans en dire trop.</p>
+      <a class="hero__more" href="#" data-slot="cta">En savoir plus</a>
+    </div>
+
+    <div class="hero__visual">
+      <div class="hero__circle"></div>
+      <div class="hero__tilt">
+        <img class="hero__portrait" data-slot="visuel"
+             src="https://placehold.co/400x600"
+             alt="Visuel"
+             onerror="this.onerror=null;this.src='https://placehold.co/400x600';">
+      </div>
+    </div>
+
+    <div class="hero__display">
+      <h1 data-slot="titre">Titre<br>court.</h1>
+    </div>
+
+  </div>
+
+  <!-- Pied -->
+  <footer class="hero__bottom">
+    <div class="hero__social">
+      <a href="#" aria-label="Facebook">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+      </a>
+      <a href="#" aria-label="Instagram">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+      </a>
+      <a href="#" aria-label="Twitter">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"/></svg>
+      </a>
+      <a href="#" aria-label="LinkedIn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+      </a>
+    </div>
+    <div class="hero__loc">Ville, Pays</div>
+  </footer>
+
+</section>
+
+<!-- ==========================================================================
+     TILT 3D du portrait au survol (effet I) — JS natif, sans dépendance.
+     Curseur fin uniquement + hors prefers-reduced-motion. Le transform est
+     appliqué sur .hero__tilt (conteneur sans animation d'entrée), donc il
+     n'écrase pas le scale(1.18) ni l'animation h18-rise du portrait.
+     ========================================================================== -->
+<script>
+(function(){
+  if(!window.matchMedia('(hover:hover) and (pointer:fine)').matches) return;
+  if(window.matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  var zone = document.querySelector('.hero__visual');
+  var el   = document.querySelector('.hero__tilt');
+  if(!zone || !el) return;
+  var MAX = 10; /* amplitude max en degrés — subtil */
+  zone.addEventListener('mousemove', function(e){
+    var r  = zone.getBoundingClientRect();
+    var px = (e.clientX - r.left) / r.width;
+    var py = (e.clientY - r.top)  / r.height;
+    el.style.transform =
+      'perspective(900px) rotateX(' + ((0.5 - py) * MAX).toFixed(2) + 'deg) ' +
+      'rotateY(' + ((px - 0.5) * MAX).toFixed(2) + 'deg) translateY(-4px)';
+  });
+  zone.addEventListener('mouseleave', function(){ el.style.transform = ''; });
+})();
+</script>
+
+</body>
+</html>

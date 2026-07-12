@@ -1,0 +1,274 @@
+---
+/**
+ * checkout.astro — client-side checkout for the static site.
+ * Reads the cart from window.TICart (localStorage), renders an editable order
+ * summary + a details form. "Place order" records an order request (no card
+ * data is handled here) and clears the cart. Honest demo: confirmation by email.
+ */
+import Layout from "../layouts/Layout.astro";
+import AnnouncementBar from "../components/sections/utilitaire_announcement-bar.astro";
+import Nav from "../components/sections/navbars_nav-sticky-simple.astro";
+import Cart from "../components/Cart.astro";
+import Footer from "../components/sections/pieds-de-page_footer-bigtype.astro";
+import { SITE } from "../data/site";
+---
+
+<Layout
+  title={`Checkout — ${SITE.name}`}
+  description="Review your kits and place your order. Free worldwide shipping, skin-safe paint."
+  lang="en"
+>
+  <Fragment slot="header">
+    <AnnouncementBar />
+    <Nav currentPath="/checkout/" />
+    <Cart />
+  </Fragment>
+
+  <section class="co" aria-label="Checkout">
+    <div class="co__inner">
+      <h1 class="co__title">Checkout</h1>
+
+      <!-- Empty state -->
+      <div class="co__empty" data-co-empty hidden>
+        <p>Your cart is empty.</p>
+        <a class="btn btn--primary" href="/kits/">Browse the kits</a>
+      </div>
+
+      <!-- Success state -->
+      <div class="co__done" data-co-done hidden>
+        <div class="co__done-glyph" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" /></svg>
+        </div>
+        <h2>Order placed 🎉</h2>
+        <p>Thanks! Your order <strong data-co-order-id></strong> is in. We'll email your confirmation and tracking, plus a secure payment link — no card details were entered here.</p>
+        <div class="co__done-cta">
+          <a class="btn btn--primary" href="/kits/">Keep shopping</a>
+          <a class="btn btn--ghost" href="/gallery/">See the gallery</a>
+        </div>
+      </div>
+
+      <!-- Checkout grid -->
+      <div class="co__grid" data-co-grid>
+        <form class="co__form" data-co-form novalidate>
+          <h2 class="co__h">Contact</h2>
+          <div class="co__row">
+            <label class="co__field">
+              <span>Full name</span>
+              <input type="text" name="name" autocomplete="name" required />
+            </label>
+            <label class="co__field">
+              <span>Email</span>
+              <input type="email" name="email" autocomplete="email" required />
+            </label>
+          </div>
+
+          <h2 class="co__h">Shipping address</h2>
+          <label class="co__field">
+            <span>Street address</span>
+            <input type="text" name="address" autocomplete="street-address" required />
+          </label>
+          <div class="co__row">
+            <label class="co__field">
+              <span>City</span>
+              <input type="text" name="city" autocomplete="address-level2" required />
+            </label>
+            <label class="co__field co__field--sm">
+              <span>Postal code</span>
+              <input type="text" name="zip" autocomplete="postal-code" required />
+            </label>
+            <label class="co__field">
+              <span>Country</span>
+              <input type="text" name="country" autocomplete="country-name" required />
+            </label>
+          </div>
+
+          <h2 class="co__h">Order notes <span class="co__opt">optional</span></h2>
+          <label class="co__field">
+            <span>Paint colors, sizes, a gift message…</span>
+            <textarea name="notes" rows="3" placeholder="e.g. Body Imprints in pink, please gift-wrap 🎁"></textarea>
+          </label>
+
+          <p class="co__err" data-co-err hidden>Please fill in the required fields.</p>
+          <button type="submit" class="btn btn--primary co__place">
+            Place order · <span data-co-total>€0</span>
+          </button>
+          <p class="co__fine">No payment is taken on this page — we email a secure payment link with your confirmation.</p>
+        </form>
+
+        <aside class="co__summary" aria-label="Order summary">
+          <h2 class="co__h">Your order</h2>
+          <ul class="co__items" data-co-items></ul>
+          <dl class="co__totals">
+            <div><dt>Subtotal</dt><dd data-co-subtotal>€0</dd></div>
+            <div><dt>Shipping</dt><dd class="co__free">Free</dd></div>
+            <div class="co__grand"><dt>Total</dt><dd data-co-grand>€0</dd></div>
+          </dl>
+          <a class="co__edit" href="#" data-cart-open>Edit cart</a>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <Footer slot="footer" />
+</Layout>
+
+<template data-co-item-template>
+  <li class="co__item">
+    <a class="co__thumb" href="#"><img src="" alt="" /></a>
+    <div class="co__meta">
+      <p class="co__name"></p>
+      <p class="co__sub" data-opt></p>
+    </div>
+    <span class="co__qty">×<span data-qty>1</span></span>
+    <span class="co__price" data-line>€0</span>
+  </li>
+</template>
+
+<style>
+  .co { color: var(--fg); }
+  .co__inner { width: 100%; max-width: var(--container); margin: 0 auto; padding-inline: var(--gutter); text-align: left; }
+  .co__title { font-size: clamp(2rem, 4.4vw, 3rem); font-weight: 800; letter-spacing: -.02em; margin-bottom: 2rem; }
+
+  .co__grid { display: grid; grid-template-columns: 1.3fr .9fr; gap: clamp(1.6rem, 4vw, 3rem); align-items: start; }
+
+  .co__h { font-size: 1rem; font-weight: 800; letter-spacing: .01em; margin: 1.6rem 0 .9rem; }
+  .co__h:first-child { margin-top: 0; }
+  .co__opt, .co__fine, .co__free { color: var(--muted); font-weight: 500; }
+  .co__opt { font-size: .82rem; }
+
+  .co__row { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; }
+  .co__row:has(.co__field--sm) { grid-template-columns: 1.2fr .8fr 1fr; }
+  .co__field { display: flex; flex-direction: column; gap: .4rem; margin-bottom: .9rem; }
+  .co__field span { font-size: .85rem; color: var(--muted); font-weight: 600; }
+  .co__field input, .co__field textarea {
+    background: var(--surface); border: 1px solid var(--line); border-radius: calc(var(--radius) * .6);
+    padding: .7rem .85rem; color: var(--fg); font: inherit; width: 100%; resize: vertical;
+    transition: border-color .2s;
+  }
+  .co__field input:focus, .co__field textarea:focus { outline: none; border-color: var(--accent); }
+  .co__field input:user-invalid { border-color: #e0556b; }
+
+  .co__err { color: #ff8095; font-size: .9rem; margin: .3rem 0 .6rem; }
+  .co__place { width: 100%; margin-top: .6rem; font-size: 1.02rem; padding: .9em 1.4em; }
+  .co__fine { font-size: .8rem; margin-top: .7rem; }
+
+  .co__summary {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 1.3rem 1.4rem; position: sticky; top: 6rem;
+  }
+  .co__items { list-style: none; padding: 0; margin: 0 0 1rem; display: flex; flex-direction: column; gap: .9rem; }
+  .co__item { display: grid; grid-template-columns: 3.4rem 1fr auto auto; gap: .7rem; align-items: center; }
+  .co__thumb { display: block; width: 3.4rem; height: 3.4rem; border-radius: .5rem; overflow: hidden; border: 1px solid var(--line); }
+  .co__thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .co__name { font-weight: 700; font-size: .9rem; line-height: 1.2; }
+  .co__sub { color: var(--muted); font-size: .78rem; margin-top: .1rem; }
+  .co__sub:empty { display: none; }
+  .co__qty { color: var(--muted); font-size: .85rem; }
+  .co__price { font-weight: 800; font-size: .92rem; }
+
+  .co__totals { border-top: 1px solid var(--line); padding-top: 1rem; display: flex; flex-direction: column; gap: .55rem; }
+  .co__totals div { display: flex; justify-content: space-between; align-items: baseline; }
+  .co__totals dt, .co__totals dd { margin: 0; }
+  .co__totals dt { color: var(--muted); }
+  .co__grand { border-top: 1px solid var(--line); padding-top: .7rem; margin-top: .2rem; }
+  .co__grand dt { color: var(--fg); font-weight: 800; font-size: 1.05rem; }
+  .co__grand dd { font-weight: 800; font-size: 1.35rem;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .co__edit { display: inline-block; margin-top: 1rem; color: var(--accent-2); font-size: .88rem; }
+
+  /* `hidden` must win over the flex/grid display below (attribute selector > class). */
+  .co__grid[hidden], .co__empty[hidden], .co__done[hidden] { display: none; }
+  .co__empty, .co__done { text-align: center; padding: 3rem 1rem; display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+  .co__empty p { color: var(--muted); }
+  .co__done-glyph { width: 4.5rem; height: 4.5rem; display: grid; place-items: center; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+  .co__done-glyph svg { width: 2.2rem; height: 2.2rem; fill: none; stroke: var(--accent-contrast); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .co__done h2 { font-size: 1.8rem; font-weight: 800; }
+  .co__done p { color: var(--muted); max-width: 34rem; line-height: 1.6; }
+  .co__done-cta { display: flex; gap: .8rem; flex-wrap: wrap; justify-content: center; margin-top: .5rem; }
+
+  @media (max-width: 860px) {
+    .co__grid { grid-template-columns: 1fr; }
+    .co__summary { position: static; order: -1; }
+  }
+  @media (max-width: 520px) {
+    .co__row, .co__row:has(.co__field--sm) { grid-template-columns: 1fr; }
+  }
+</style>
+
+<script>
+  (function () {
+    const grid = document.querySelector<HTMLElement>("[data-co-grid]");
+    const empty = document.querySelector<HTMLElement>("[data-co-empty]");
+    const done = document.querySelector<HTMLElement>("[data-co-done]");
+    const itemsEl = document.querySelector<HTMLElement>("[data-co-items]");
+    const tmpl = document.querySelector<HTMLTemplateElement>("[data-co-item-template]");
+    const form = document.querySelector<HTMLFormElement>("[data-co-form]");
+    const errEl = document.querySelector<HTMLElement>("[data-co-err]");
+    if (!grid || !empty || !done || !itemsEl || !tmpl || !form) return;
+
+    const money = (n: number) => "€" + (Math.round(n * 100) / 100).toLocaleString("en-US");
+    const cart = () => (window as any).TICart;
+
+    function render() {
+      const c = cart();
+      const items = c ? c.items() : [];
+      const has = items.length > 0;
+      grid.hidden = !has;
+      empty.hidden = has || !done.hidden;
+      if (!has) return;
+
+      itemsEl!.textContent = "";
+      items.forEach((it: any) => {
+        const node = (tmpl!.content.firstElementChild as HTMLElement).cloneNode(true) as HTMLElement;
+        const href = it.url || "/kits/" + it.slug + "/";
+        node.querySelector("a")!.setAttribute("href", href);
+        const img = node.querySelector("img")!;
+        img.src = it.image; img.alt = it.name;
+        node.querySelector(".co__name")!.textContent = it.name;
+        node.querySelector("[data-opt]")!.textContent = it.size ? "Size: " + it.size : "";
+        node.querySelector("[data-qty]")!.textContent = String(it.qty);
+        node.querySelector("[data-line]")!.textContent = money(it.price * it.qty);
+        itemsEl!.appendChild(node);
+      });
+
+      const total = c.total();
+      document.querySelectorAll("[data-co-total],[data-co-subtotal],[data-co-grand]").forEach((el) => {
+        el.textContent = money(total);
+      });
+    }
+
+    document.addEventListener("ti-cart:change", render);
+    // The cart engine has no event bus; poll once controls mutate via drawer.
+    // Re-render whenever the drawer changes it by observing storage + focus.
+    window.addEventListener("storage", render);
+    window.addEventListener("pageshow", render);
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (!form.checkValidity()) {
+        errEl && (errEl.hidden = false);
+        form.reportValidity();
+        return;
+      }
+      errEl && (errEl.hidden = true);
+      const c = cart();
+      const orderId = "TI-" + Math.random().toString(36).slice(2, 7).toUpperCase();
+      const oid = document.querySelector("[data-co-order-id]");
+      if (oid) oid.textContent = "#" + orderId;
+      if (c) c.clear();
+      grid.hidden = true;
+      empty.hidden = true;
+      done.hidden = false;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", render);
+    else render();
+    // Cart drawer edits mutate localStorage but stay same-tab (no storage event);
+    // re-render on any click inside the drawer.
+    document.addEventListener("click", (e) => {
+      if ((e.target as HTMLElement)?.closest?.("[data-cart-items]")) setTimeout(render, 0);
+    });
+  })();
+</script>

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>document.documentElement.classList.add('wf-js')</script>
+<!-- lib:meta -->
+<meta name="lib:id" content="bandeau_cta-card-image-bg">
+<meta name="lib:groupe" content="02-corps">
+<meta name="lib:categorie" content="bandeau">
+<meta name="lib:intention" content="conversion-footer">
+<meta name="lib:role" content="cta">
+<meta name="lib:placement" content="section">
+<meta name="lib:niveau" content="2">
+<meta name="lib:titre" content="Carte avec image de fond + formulaire">
+<meta name="lib:tags" content="JS natif, sombre, formulaire, parallax, fill-bouton">
+<meta name="lib:utilite" content="Grande carte avec image de fond plein cadre + voile sombre : titre + sous-titre à gauche, e-mail + bouton à droite. Stagger fade-up à l'apparition, léger parallax/zoom de l'image de fond au scroll (marge de scale anti-bord) et remplissage du bouton au survol depuis le curseur. JS natif.">
+<meta name="lib:showcase" content="non">
+<meta name="lib:secteurs" content="polyvalent">
+<meta name="lib:slots" content="titre:titre:court; sous-titre:ligne:court; cta:cta:1-2">
+<meta name="lib:anatomie" content="base:1 titre, 1 sous-titre, 1 formulaire e-mail (input plus bouton); layout:grande carte arrondie, split 50/50, image de fond plein cadre plus voile sombre, texte à gauche, formulaire à droite; titre:gras (clamp 2-3rem) sur le voile; sous-titre:1 ligne atténuée; cta:1 champ e-mail plus 1 bouton submit clair avec flèche; images:1 image de fond lifestyle (placeholder); hover:le bouton se remplit d'un disque sombre depuis le curseur, flèche qui glisse; animation:stagger fade-up au montage plus léger parallax-zoom de l'image au scroll; responsive:passe en 1 colonne sous 780px, formulaire empilé pleine largeur">
+<!-- /lib:meta -->
+<title>Carte avec image de fond + formulaire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- ==========================================================================
+     STYLE — CTA 08 · Carte large avec image de fond plein cadre, voile
+     sombre par-dessus, split 50/50 : à gauche titre + sous-titre, à droite
+     un formulaire e-mail (input + bouton). Stagger fade-up à l'apparition.
+     Portage HTML d'un composant React (framer-motion). JS natif.
+     ========================================================================== -->
+<style>
+  /* --- 1. TOKENS ---------------------------------------------------------- */
+  :root{
+    --bg:#fbfbfa;
+    --fg:#16181d;
+    --muted:#d4d4d0;
+    --card-radius:1rem;
+    --overlay:rgba(15,17,22,.55);    /* voile sombre par-dessus l'image */
+    --input-bg:rgba(20,22,28,.55);
+    --input-border:rgba(255,255,255,.18);
+    --btn-bg:#ffffff;
+    --btn-fg:#16181d;
+    --accent:#16181d;                /* couleur de remplissage du bouton (FILLBTN) */
+    --font:"Outfit",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --maxw:74rem;
+    --ease:cubic-bezier(.16,1,.3,1);
+  }
+
+  /* --- 2. RESET ----------------------------------------------------------- */
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  button,input{font:inherit;color:inherit}
+
+  /* --- 3. LAYOUT ---------------------------------------------------------- */
+  .cta{background:var(--bg);font-family:var(--font);
+    padding:clamp(1rem,4vw,2.5rem)}
+  .cta__inner{max-width:var(--maxw);margin:0 auto;
+    position:relative;border-radius:var(--card-radius);overflow:hidden;
+    isolation:isolate;
+    box-shadow:0 24px 50px -28px rgba(22,24,29,.35)}
+
+  /* image de fond — scale constant >1 pour garder une marge : le parallax
+     (translateY piloté en JS au scroll) ne doit jamais exposer un bord */
+  .cta__bg{
+    position:absolute;inset:0;z-index:-2;
+    background:url('https://placehold.co/1600x900/1a1d24/3a3d48?text=Image+de+fond+lifestyle') center/cover no-repeat,
+               #1a1d24;
+    transform:scale(1.12);will-change:transform}
+  /* voile par-dessus l'image pour garder le contraste du texte */
+  .cta__inner::before{
+    content:"";position:absolute;inset:0;z-index:-1;
+    background:linear-gradient(135deg,rgba(15,17,22,.7) 0%,rgba(15,17,22,.4) 100%);
+    pointer-events:none}
+
+  .cta__grid{
+    position:relative;color:#fff;
+    display:grid;grid-template-columns:1fr 1fr;
+    align-items:center;gap:2rem;
+    padding:clamp(2rem,5vw,4rem)}
+
+  /* --- texte --- */
+  .cta__title{font-size:clamp(2rem,4.4vw,3rem);font-weight:800;
+    letter-spacing:-.025em;line-height:1.05}
+  .cta__sub{margin-top:1rem;max-width:32rem;
+    font-size:clamp(1rem,1.3vw,1.1rem);line-height:1.6;color:var(--muted)}
+
+  /* --- form --- */
+  .cta__form{display:flex;gap:.6rem;flex-direction:row;width:100%;max-width:24rem;
+    justify-self:end}
+  .cta__input{
+    flex:1;min-width:0;height:2.9rem;line-height:2.9rem;
+    padding:0 .9rem;border-radius:.5rem;
+    font-size:.92rem;
+    background:var(--input-bg);color:#fff;
+    border:1px solid var(--input-border);
+    backdrop-filter:blur(4px);
+    transition:border-color .2s,box-shadow .2s}
+  .cta__input::placeholder{color:rgba(255,255,255,.55)}
+  .cta__input:focus{outline:none;border-color:#fff;
+    box-shadow:0 0 0 3px rgba(255,255,255,.18)}
+  .cta__btn{
+    position:relative;isolation:isolate;overflow:hidden;
+    height:2.9rem;padding:0 1rem;border-radius:.5rem;
+    background:var(--btn-bg);color:var(--btn-fg);border:0;cursor:pointer;
+    font-weight:600;font-size:.88rem;
+    display:inline-flex;align-items:center;gap:.4rem;flex-shrink:0;
+    transition:color .35s var(--ease),transform .2s var(--ease)}
+  .cta__btn svg{width:.9rem;height:.9rem;
+    transition:transform .25s var(--ease)}
+  /* FILLBTN — remplissage circulaire sombre depuis le point survolé */
+  .cta__btn::before{content:"";position:absolute;z-index:-1;
+    top:var(--y,50%);left:var(--x,50%);width:0;height:0;border-radius:50%;
+    background:var(--accent,#16181d);transform:translate(-50%,-50%);
+    transition:width .5s var(--ease),height .5s var(--ease)}
+  @media (hover:hover) and (pointer:fine){
+    .cta__btn:hover{color:#fff;transform:translateY(-1px)}
+    .cta__btn:hover::before{width:340px;height:340px}
+    .cta__btn:hover svg{transform:translateX(3px)}
+  }
+
+  /* --- reveal stagger --- */
+  .anim{opacity:0;transform:translateY(20px);
+    transition:opacity .6s var(--ease),transform .6s var(--ease)}
+  .is-in .anim{opacity:1;transform:none}
+  .delay-1{transition-delay:.1s}
+  .delay-2{transition-delay:.3s}
+  .delay-3{transition-delay:.5s}
+
+  /* --- 4. TYPOGRAPHIE ----------------------------------------------------- */
+
+  /* --- 5. ACCENT ---------------------------------------------------------- */
+  /* --overlay + --btn-bg pilotent l'identité (clair sur sombre par défaut) */
+
+  /* --- 6. RESPONSIVE ------------------------------------------------------ */
+  @media (max-width:780px){
+    .cta__grid{grid-template-columns:1fr;gap:1.5rem}
+    .cta__form{justify-self:stretch;flex-direction:column;max-width:none}
+    .cta__btn{justify-content:center}
+  }
+
+  /* --- 7. ACCESSIBILITÉ --------------------------------------------------- */
+  @media (prefers-reduced-motion:reduce){
+    .anim{opacity:1;transform:none;transition:none}
+    .cta__btn,.cta__btn svg,.cta__btn::before{transition:none}
+    /* pas de parallax : image fixe, scale neutre */
+    .cta__bg{transform:none!important;will-change:auto}
+  }
+</style>
+</head>
+<body>
+
+<!-- ==========================================================================
+     STRUCTURE — contenu à personnaliser
+       Pour brancher la vraie image, remplacer l'URL de --bg dans .cta__bg
+       (ou poser un <img> en position:absolute si on préfère le markup).
+     ========================================================================== -->
+<section class="cta">
+  <div class="cta__inner" id="cta">
+    <div class="cta__bg" aria-hidden="true"></div>
+
+    <div class="cta__grid">
+
+      <div>
+        <h2 class="cta__title anim delay-1" data-slot="titre">Construisons quelque chose ensemble.</h2>
+        <p class="cta__sub anim delay-2" data-slot="sous-titre">Quelques mots pour rappeler la promesse, la valeur, et inviter à laisser une adresse e-mail. Texte générique à remplacer.</p>
+      </div>
+
+      <form class="cta__form anim delay-3" novalidate>
+        <input class="cta__input" id="email" type="email" placeholder="Adresse e-mail"
+               aria-label="Adresse e-mail" required>
+        <button class="cta__btn" type="submit" data-slot="cta">
+          S'inscrire
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </form>
+
+    </div>
+  </div>
+</section>
+
+<!-- ==========================================================================
+     SCRIPT — 1) stagger fade-up au montage (inchangé) · 2) IMGREVEAL :
+     léger parallax de l'image au scroll (translateY composé avec le scale
+     1.12 constant, qui garde une marge anti-bord) · 3) FILLBTN : remplissage
+     du bouton depuis le point survolé. Effets curseur/scroll : souris fine,
+     coupés sous prefers-reduced-motion.
+     ========================================================================== -->
+<script>
+  (function () {
+    var el = document.getElementById('cta');
+    /* 1. Stagger — léger délai pour peindre le voile/image avant l'anim */
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { el.classList.add('is-in'); });
+    });
+
+    var rm = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    if (rm) return;
+
+    /* 2. IMGREVEAL — parallax fond : translateY proportionnel à la position
+          de la carte dans le viewport, transform isolé du scale constant. */
+    var bg = el.querySelector('.cta__bg');
+    if (bg) {
+      var ticking = false, AMP = 26;   /* amplitude px ; reste sous la marge du scale 1.12 */
+      function onScroll () {
+        var r = el.getBoundingClientRect(), vh = window.innerHeight || 1;
+        if (r.bottom < 0 || r.top > vh) { ticking = false; return; }
+        var p = (r.top + r.height / 2) / vh - 0.5;   /* -0.5 (haut) → +0.5 (bas) */
+        bg.style.transform = 'translateY(' + (p * AMP).toFixed(1) + 'px) scale(1.12)';
+        ticking = false;
+      }
+      window.addEventListener('scroll', function () {
+        if (!ticking) { ticking = true; requestAnimationFrame(onScroll); }
+      }, { passive: true });
+      onScroll();
+    }
+
+    /* 3. FILLBTN — origine du remplissage = point survolé (souris fine) */
+    if (window.matchMedia('(hover:hover) and (pointer:fine)').matches) {
+      [].forEach.call(el.querySelectorAll('.cta__btn'), function (btn) {
+        btn.addEventListener('mouseenter', function (e) {
+          var r = btn.getBoundingClientRect();
+          btn.style.setProperty('--x', (e.clientX - r.left) + 'px');
+          btn.style.setProperty('--y', (e.clientY - r.top) + 'px');
+        });
+        btn.addEventListener('mouseleave', function (e) {
+          var r = btn.getBoundingClientRect();
+          btn.style.setProperty('--x', (e.clientX - r.left) + 'px');
+          btn.style.setProperty('--y', (e.clientY - r.top) + 'px');
+        });
+      });
+    }
+  })();
+</script>
+
+</body>
+</html>

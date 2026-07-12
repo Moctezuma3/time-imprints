@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- lib:meta -->
+<meta name="lib:id" content="avant-apres_beforeafter-hover-reveal">
+<meta name="lib:groupe" content="02-corps">
+<meta name="lib:categorie" content="avant-apres">
+<meta name="lib:intention" content="preuve-confiance">
+<meta name="lib:role" content="avant-apres">
+<meta name="lib:placement" content="section">
+<meta name="lib:niveau" content="1">
+<meta name="lib:titre" content="Survol révèle l'après">
+<meta name="lib:tags" content="CSS pur, images, interactif">
+<meta name="lib:utilite" content="Grille de réalisations où le survol (ou le focus) d'une vignette fait apparaître la photo « après » par-dessus le « avant ». Démonstration ludique sans JS. CSS pur, images à remplacer.">
+<meta name="lib:showcase" content="non">
+<meta name="lib:secteurs" content="artisanat, btp, beaute">
+<meta name="lib:slots" content="titre:titre:court; paires:liste:1-6">
+<meta name="lib:anatomie" content="base:3 paires avant/apres, 1 titre, 1 sous-titre; titre:H2 avec eyebrow Nos realisations; sous-titre:paragraphe d explication; images:grille de 3 vignettes, chaque vignette superpose une image avant et une image apres; legende:badge Avant en haut a gauche qui passe en accent a la revelation; animation:la photo apres apparait en fondu par-dessus l avant; hover:revelation de l apres au survol ou au focus clavier, vignettes accessibles via tabindex; texte:ligne d astuce sous la grille pour le tactile; responsive:grille de 3 a 2 colonnes sous 820px puis 1 colonne sous 480px">
+<!-- /lib:meta -->
+<title>Survol révèle l'après</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- ==========================================================================
+     STYLE — Avant/Après · Survol révèle l'après : la photo « après » se
+     superpose au survol/focus. 100 % CSS, un seul accent. Images à remplacer.
+     ========================================================================== -->
+<style>
+  /* 1. Tokens ------------------------------------------------------------ */
+  :root{
+    --bg:#fbfbfa;--surface:#ffffff;--fg:#16181d;--muted:#5c6270;--line:#e9e9e4;
+    --accent:#3b6ef5;
+    --maxw:72rem;
+    --font:"Outfit",ui-sans-serif,system-ui,-apple-system,sans-serif;
+    --ease:cubic-bezier(.16,1,.3,1);
+  }
+  /* 2. Reset ------------------------------------------------------------- */
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  img{display:block;max-width:100%}
+  body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6}
+  /* 3. Layout ------------------------------------------------------------ */
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:clamp(3.5rem,8vw,6rem) clamp(1.4rem,5vw,3rem)}
+  .head{max-width:38rem;margin-bottom:clamp(2rem,5vw,3rem)}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem}
+  .ba{position:relative;border-radius:1rem;overflow:hidden;aspect-ratio:4/3;background:#e6e8ec;
+    cursor:pointer;border:1px solid var(--line)}
+  .ba img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .ba__after{opacity:0;transition:opacity .45s var(--ease)}
+  .ba__tag{position:absolute;top:.7rem;left:.7rem;z-index:2;background:rgba(22,24,29,.78);color:#fff;
+    font-size:.72rem;font-weight:700;letter-spacing:.04em;padding:.3rem .7rem;border-radius:99px;
+    transition:background .3s var(--ease)}
+  /* 4. Typographie ------------------------------------------------------- */
+  .eyebrow{font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  .head h2{font-size:clamp(1.7rem,3.6vw,2.4rem);font-weight:800;letter-spacing:-.025em;margin-top:.5rem}
+  .head p{color:var(--muted);margin-top:.7rem}
+  .hint{margin-top:1.2rem;font-size:.85rem;color:var(--muted)}
+  /* 5. Accent / hover ---------------------------------------------------- */
+  @media (hover:hover) and (pointer:fine){
+    .ba:hover .ba__after{opacity:1}
+    .ba:hover .ba__tag{background:var(--accent)}
+  }
+  .ba:focus-within .ba__after{opacity:1}
+  .ba:focus-within .ba__tag{background:var(--accent)}
+  /* 6. Responsive -------------------------------------------------------- */
+  @media (max-width:820px){.grid{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:480px){.grid{grid-template-columns:1fr}}
+  /* 7. Accessibilité ----------------------------------------------------- */
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+  /* --- Animation d'entrée au chargement (cascade) ---------------------- */
+  @keyframes baIn{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+  .head{animation:baIn .7s cubic-bezier(.16,1,.3,1) .05s backwards}
+  .grid > .ba{animation:baIn .6s cubic-bezier(.16,1,.3,1) backwards}
+  .grid > .ba:nth-child(1){animation-delay:.14s}
+  .grid > .ba:nth-child(2){animation-delay:.22s}
+  .grid > .ba:nth-child(3){animation-delay:.30s}
+  .grid > .ba:nth-child(4){animation-delay:.38s}
+  .grid > .ba:nth-child(5){animation-delay:.46s}
+  .grid > .ba:nth-child(6){animation-delay:.54s}
+  @media (prefers-reduced-motion:reduce){.head,.grid > .ba{animation:none}}
+</style>
+</head>
+<body>
+
+<!-- ==========================================================================
+     STRUCTURE — survol révèle l'après. Remplacez les images « avant » et
+     « après » de chaque vignette (tabindex=0 pour l'accès clavier).
+     ========================================================================== -->
+<section class="wrap" aria-labelledby="t">
+  <header class="head">
+    <span class="eyebrow">Nos réalisations</span>
+    <h2 id="t" data-slot="titre">Passez la souris : le « après » apparaît</h2>
+    <p>Quelques transformations récentes. Survolez (ou tabulez sur) une image pour voir le résultat.</p>
+  </header>
+
+  <div class="grid" data-slot="paires">
+    <figure class="ba" tabindex="0" aria-label="Réalisation 1 : avant puis après" data-slot-item>
+      <span class="ba__tag">Avant</span>
+      <img src="https://placehold.co/640x480/cfd4dd/6b7280?text=Avant+1" alt="Projet 1 — avant" loading="lazy" data-field="avant">
+      <img class="ba__after" src="https://placehold.co/640x480/3b6ef5/ffffff?text=Apres+1" alt="Projet 1 — après" loading="lazy" data-field="apres">
+    </figure>
+    <figure class="ba" tabindex="0" aria-label="Réalisation 2 : avant puis après">
+      <span class="ba__tag">Avant</span>
+      <img src="https://placehold.co/640x480/cfd4dd/6b7280?text=Avant+2" alt="Projet 2 — avant" loading="lazy">
+      <img class="ba__after" src="https://placehold.co/640x480/3b6ef5/ffffff?text=Apres+2" alt="Projet 2 — après" loading="lazy">
+    </figure>
+    <figure class="ba" tabindex="0" aria-label="Réalisation 3 : avant puis après">
+      <span class="ba__tag">Avant</span>
+      <img src="https://placehold.co/640x480/cfd4dd/6b7280?text=Avant+3" alt="Projet 3 — avant" loading="lazy">
+      <img class="ba__after" src="https://placehold.co/640x480/3b6ef5/ffffff?text=Apres+3" alt="Projet 3 — après" loading="lazy">
+    </figure>
+  </div>
+  <p class="hint">Astuce : au doigt, touchez l'image pour révéler l'après.</p>
+</section>
+
+</body>
+</html>

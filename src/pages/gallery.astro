@@ -1,0 +1,39 @@
+---
+/**
+ * gallery.astro — social proof in pictures: bento opener,
+ * filterable gallery, TikTok reels rail, CTA.
+ */
+import Layout from "../layouts/Layout.astro";
+import AnnouncementBar from "../components/sections/utilitaire_announcement-bar.astro";
+import Nav from "../components/sections/navbars_nav-sticky-simple.astro";
+import Cart from "../components/Cart.astro";
+import Bento from "../components/sections/bento_gallery-bento.astro";
+import FilterableGallery from "../components/sections/galerie_gallery-filterable.astro";
+import SocialStories from "../components/sections/blog-reseaux-sociaux_social-stories.astro";
+import CtaBand from "../components/sections/bandeau_divider-cta-band.astro";
+import Footer from "../components/sections/pieds-de-page_footer-bigtype.astro";
+import { SITE } from "../data/site";
+---
+
+<Layout
+  title={`Gallery — ${SITE.name}`}
+  description="Real canvases and t-shirts made with Time Imprints kits — by couples, families and best friends around the world."
+  lang="en"
+>
+  <Fragment slot="header">
+    <AnnouncementBar />
+    <Nav currentPath="/gallery/" />
+    <Cart />
+  </Fragment>
+
+  <Bento />
+  <FilterableGallery />
+  <SocialStories />
+  <CtaBand
+    title="Your wall is waiting."
+    ctaLabel="Pick your kit"
+    ctaHref="/kits/"
+  />
+
+  <Footer slot="footer" />
+</Layout>

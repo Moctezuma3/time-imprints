@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- lib:meta -->
+<meta name="lib:id" content="heros_hero-parallax-layers">
+<meta name="lib:groupe" content="01-header">
+<meta name="lib:categorie" content="heros">
+<meta name="lib:intention" content="ouverture-captation">
+<meta name="lib:placement" content="section">
+<meta name="lib:niveau" content="2">
+<meta name="lib:titre" content="Parallax multi-couches">
+<meta name="lib:tags" content="JS natif, parallax, scroll, clip-path">
+<meta name="lib:utilite" content="Profondeur, sensation premium. 3 couches à vitesses différentes, JS natif. Image révélée par masque clip-path (du bas vers le haut) au chargement.">
+<meta name="lib:showcase" content="non">
+<meta name="lib:secteurs" content="polyvalent">
+<meta name="lib:slots" content="titre:titre:court; accroche:texte:moyen; cta:cta:1-2; visuel:media:1">
+<meta name="lib:anatomie" content="base:1 surtitre, 1 titre, 1 sous-titre, 1 bouton, 1 indice de scroll, 3 couches d images de fond; layout:hero plein écran (100dvh) sur fond sombre, contenu aligné à gauche (max 40rem), suivi d une section after qui rend le parallax visible; surtitre:eyebrow en majuscules espacées, couleur muted; titre:H1 (clamp 2.6 à 5rem), poids 700; sous-titre:paragraphe, largeur max 32rem, couleur muted; cta:1 bouton plein accent (Découvrir) + un texte indice Faites défiler; images:3 couches superposées (far assombrie à 0.55, mid en opacité 0.55, voile en dégradé) plus hautes que l écran; animation:parallax JS au scroll, chaque couche se translate à une vitesse différente (data-speed 0.55/0.78/0.92) via translate3d (rAF); animation:image far révélée au chargement par masque clip-path du bas vers le haut, texte en cascade (fondu vers le haut); hover:aucun effet de survol notable (bouton réagit seulement à active); responsive:sous 768px padding latéral réduit; a11y:couches figées et couche mid masquée en prefers-reduced-motion">
+<!-- /lib:meta -->
+<title>Parallax multi-couches</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700&display=swap" rel="stylesheet">
+
+<!-- ==========================================================================
+     STYLE — Hero 05 · Parallax 3 couches, piloté en JS natif (fiable)
+     Chaque couche se translate à une vitesse différente au scroll.
+     transform/opacity uniquement (accéléré GPU). Aucune librairie.
+     Re-skin rapide : modifie uniquement le bloc :root (section 1).
+     ========================================================================== -->
+<style>
+  /* --- 1. TOKENS ---------------------------------------------------------- */
+  :root{
+    --bg:#0b0f14;
+    --fg:#eef2f6;
+    --muted:#9aa6b2;
+    --accent:#4f93d6;
+    --font:"Outfit",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --img-far:url("https://placehold.co/1920x1280");
+    --img-mid:url("https://placehold.co/1920x1280");
+  }
+
+  /* --- 2. RESET ----------------------------------------------------------- */
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+  /* --- 3. LAYOUT ---------------------------------------------------------- */
+  .hero{
+    position:relative;min-height:100dvh;overflow:hidden;
+    display:flex;align-items:center;
+    background:var(--bg);color:var(--fg);font-family:var(--font);
+  }
+  /* couches plus hautes que l'écran : marge pour se déplacer sans trou */
+  .layer{
+    position:absolute;left:0;right:0;top:-30%;height:160%;
+    background-size:cover;background-position:center;
+    will-change:transform;
+  }
+  .layer--far{background-image:var(--img-far);filter:brightness(.55)}
+  .layer--mid{background-image:var(--img-mid);opacity:.55}
+  .layer--veil{
+    background:linear-gradient(180deg,rgba(11,15,20,.25) 0%,
+               rgba(11,15,20,.55) 55%,var(--bg) 100%);
+  }
+  .hero__inner{
+    position:relative;z-index:2;width:100%;max-width:1180px;
+    margin:0 auto;padding:0 6vw;
+  }
+  .hero__content{max-width:40rem}
+
+  /* contenu qui suit, pour rendre le parallax visible au défilement */
+  .after{position:relative;z-index:2;background:var(--bg);padding:8rem 6vw}
+  .after__wrap{max-width:760px;margin:0 auto}
+
+  /* --- 4. TYPOGRAPHIE ----------------------------------------------------- */
+  .hero__eyebrow{font-size:.8rem;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:1.4rem;display:block}
+  .hero__title{font-size:clamp(2.6rem,6vw,5rem);font-weight:700;
+    line-height:1.03;letter-spacing:-.02em;margin-bottom:1.2rem}
+  .hero__sub{font-size:1.1rem;line-height:1.6;color:var(--muted);
+    max-width:32rem;margin-bottom:2.2rem}
+  .after h2{font-size:clamp(1.6rem,3vw,2.2rem);font-weight:600;
+    letter-spacing:-.02em;margin-bottom:1rem}
+  .after p{color:var(--muted);line-height:1.7}
+
+  /* --- 5. ACCENT / bouton ------------------------------------------------- */
+  .btn{
+    display:inline-block;font:inherit;font-weight:500;font-size:.98rem;
+    padding:.9rem 1.7rem;border-radius:.55rem;text-decoration:none;
+    background:var(--accent);color:#0b0f14;
+    transition:transform .25s cubic-bezier(.16,1,.3,1);
+  }
+  .btn:active{transform:translateY(1px)}
+  .scrollcue{margin-top:2.4rem;font-size:.82rem;color:var(--muted);
+    letter-spacing:.12em;text-transform:uppercase}
+
+  /* --- 6. RESPONSIVE ------------------------------------------------------ */
+  @media (max-width:768px){
+    .hero__inner,.after{padding-left:1.4rem;padding-right:1.4rem}
+    .after{padding-block:5rem}
+  }
+
+  /* --- 7. ACCESSIBILITÉ : couches figées si mouvement réduit ------------- */
+  @media (prefers-reduced-motion:reduce){
+    .layer{transform:none!important}
+    .layer--mid{display:none}
+  }
+
+  /* --- Animation d'entrée au chargement (cascade) ---------------------- */
+  /* N'anime QUE le texte ; les couches de fond (.layer) gardent le parallax JS */
+  @keyframes heroIn{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:translateY(0)}}
+  .hero__eyebrow{animation:heroIn .8s cubic-bezier(.16,1,.3,1) .06s backwards}
+  .hero__title{animation:heroIn .8s cubic-bezier(.16,1,.3,1) .18s backwards}
+  .hero__sub{animation:heroIn .8s cubic-bezier(.16,1,.3,1) .30s backwards}
+  .btn{animation:heroIn .8s cubic-bezier(.16,1,.3,1) .42s backwards}
+  .scrollcue{animation:heroIn .8s cubic-bezier(.16,1,.3,1) .54s backwards}
+  @media (prefers-reduced-motion:reduce){.hero__eyebrow,.hero__title,.hero__sub,.btn,.scrollcue{animation:none}}
+
+  /* --- Révélation clip-path de l'image principale (couche far) ------------ */
+  /* Effet D : masque qui se dévoile du bas vers le haut au chargement.
+     clip-path SEULEMENT (aucun transform) → cohabite avec le translate3d du
+     parallax JS sans conflit. État caché UNIQUEMENT dans le from{} ;
+     `backwards` l'applique pendant le délai, puis au repos l'image est pleine
+     (aucun clip-path en base, donc pas de re-coupe). */
+  @keyframes fxImgReveal{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}
+  .layer--far{animation:fxImgReveal 1.1s cubic-bezier(.16,1,.3,1) .2s backwards}
+  @media (prefers-reduced-motion:reduce){.layer--far{animation:none;clip-path:none}}
+</style>
+</head>
+<body>
+
+<!-- ==========================================================================
+     STRUCTURE — contenu à personnaliser
+       data-speed = vitesse de la couche (0 = fixe, 1 = vitesse du scroll)
+     ========================================================================== -->
+<section class="hero" id="hero">
+  <!-- NOTE visuel : image de fond de la couche lointaine (background CSS).
+       Injection avancee = variable --img (pas <img> src/alt). Les couches mid/veil
+       sont decoratives (degrades), pas des slots. -->
+  <div class="layer layer--far"  data-speed="0.55" role="img" aria-label="Image de remplacement" data-slot="visuel"></div>
+  <div class="layer layer--mid"  data-speed="0.78" aria-hidden="true"></div>
+  <div class="layer layer--veil" data-speed="0.92" aria-hidden="true"></div>
+
+  <div class="hero__inner">
+    <div class="hero__content">
+      <span class="hero__eyebrow">Surtitre · catégorie</span>
+      <h1 class="hero__title" data-slot="titre">Construisons quelque chose qui vous ressemble.</h1>
+      <p class="hero__sub" data-slot="accroche">
+        Quelques mots pour préciser l'intention, poser le contexte et donner
+        envie d'aller plus loin sans trop en dire.
+      </p>
+      <a class="btn" href="#" data-slot="cta">Découvrir</a>
+      <p class="scrollcue">Faites défiler &darr;</p>
+    </div>
+  </div>
+</section>
+
+<section class="after">
+  <div class="after__wrap">
+    <h2>Le parallax se révèle au défilement</h2>
+    <p>
+      Les trois couches se déplacent à des vitesses différentes (attribut
+      <code>data-speed</code>) : le fond est lent, le voile presque solidaire
+      du contenu. Effet calculé en JavaScript natif, en
+      <code>transform</code> uniquement — fiable sur tous les navigateurs.
+      Remplace ce bloc par la suite réelle du site.
+    </p>
+  </div>
+</section>
+
+<!-- ==========================================================================
+     SCRIPT — translate chaque couche en fonction du scroll (rAF, transform)
+     ========================================================================== -->
+<script>
+  (function () {
+    var rm = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    if (rm) return;
+
+    var hero = document.getElementById('hero');
+    var layers = [].slice.call(document.querySelectorAll('.layer'));
+    var ticking = false;
+
+    function update () {
+      var y = window.scrollY || window.pageYOffset;
+      // ne bouge que tant que le hero est à l'écran (perf)
+      if (y < hero.offsetHeight) {
+        layers.forEach(function (el) {
+          var speed = parseFloat(el.dataset.speed) || 0;
+          // (1 - speed) => la couche "retarde" sur le scroll = profondeur
+          var offset = y * (1 - speed);
+          el.style.transform = 'translate3d(0,' + offset + 'px,0)';
+        });
+      }
+      ticking = false;
+    }
+    window.addEventListener('scroll', function () {
+      if (!ticking) { ticking = true; requestAnimationFrame(update); }
+    }, { passive: true });
+    update();
+  })();
+</script>
+
+</body>
+</html>

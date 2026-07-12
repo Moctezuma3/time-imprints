@@ -1,0 +1,360 @@
+---
+/**
+ * Integration — section `testimonials_testimonials-carousel` (normal section, not bleed).
+ * Phase 2 rules applied:
+ *   1. Local :root tokens, reset, Google-Fonts markup removed → inherited from base.
+ *   2. `min-height:100dvh` + internal padding-block removed → base `--section-y`
+ *      rhythm; arrows re-anchored to a `.stage` wrapper (they were positioned
+ *      against the old full-viewport section).
+ *   3. Hard-coded colors (rgba blacks/whites, #d2d2cc) → tokens + color-mix();
+ *      active dot moved to --accent; avatar photos (placeholders) replaced by an
+ *      initial badge on the brand gradient --accent→--accent-2.
+ *   4. Eyebrow removed (typographic sobriety rule); guillemets → English curly
+ *      quotes in accent pink.
+ *   5. Slides, dots and JS all derive from the `quotes` prop; JS is scoped per
+ *      `.ti-tcarousel` instance (safe for 0 or n occurrences on a page).
+ *      NOTE: `.wf-js` lives on <html>, outside this component → written as
+ *      `:global(.wf-js)` so the selector survives Astro's attribute scoping.
+ *   6. Kept: drag/swipe, keyboard arrows, dots, dramatic reveal of the active
+ *      card (IntersectionObserver + anti-stuck failsafe), replay on slide change,
+ *      cursor-following spot, reduced-motion fallbacks.
+ */
+export interface Props {
+  title?: string;
+  sub?: string;
+  quotes?: { quote: string; name: string }[];
+}
+const {
+  title = "What people say after the paint dries",
+  sub = "Straight from our Instagram DMs — translated, never embellished.",
+  quotes = [
+    { quote: "While we were painting I honestly caught such a vibe. And delivery was crazy fast — separate respect.", name: "Anna" },
+    { quote: "The t-shirts — WOW. The emotions — even more WOW. Can't wait for them to dry so we can wear them!", name: "Katya & Dima" },
+    { quote: "The paint washed right off our skin but stays so vivid on the canvas.", name: "Olena" },
+    { quote: "It's not just a gift. It's a memory we made together.", name: "Yuliia" },
+  ],
+} = Astro.props;
+---
+
+<section class="ti-tcarousel">
+  <header class="tc__head">
+    <h2 class="tc__title" data-slot="titre">{title}</h2>
+    {sub && <p class="tc__sub">{sub}</p>}
+  </header>
+
+  <div class="stage">
+    <div class="carousel" tabindex="0" aria-label="Customer reviews — use the arrows, arrow keys, or drag" data-slot="avis">
+      <div class="track">
+        {quotes.map((q) => (
+          <article class="slide" data-slot-item>
+            <div class="card">
+              <p class="card__quote" data-field="citation">{q.quote}</p>
+              <div class="card__person">
+                <span class="card__initial" aria-hidden="true">{q.name.charAt(0)}</span>
+                <div class="card__meta">
+                  <span class="card__name" data-field="nom">{q.name}</span>
+                  <span class="card__role" data-field="role">via Instagram DM</span>
+                </div>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+
+    <button class="arrow arrow--prev" type="button" aria-label="Previous review">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>
+    </button>
+    <button class="arrow arrow--next" type="button" aria-label="Next review">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+    </button>
+  </div>
+
+  <div class="dots" aria-label="Go to review">
+    {quotes.map((_, i) => (
+      <button class="dot" type="button" data-i={i} aria-current={i === 0 ? "true" : undefined} aria-label={`Review ${i + 1}`}></button>
+    ))}
+  </div>
+</section>
+
+<style>
+  .ti-tcarousel {
+    --ease: cubic-bezier(.16,1,.3,1);
+    --easeBack: cubic-bezier(.34,1.56,.64,1);
+    color: var(--fg);
+  }
+  .tc__head { max-width: var(--container); margin: 0 auto clamp(2rem, 4vw, 3rem); padding-inline: var(--gutter); text-align: center; }
+  .tc__title { font-size: clamp(2rem, 4.4vw, 3rem); font-weight: 800; line-height: 1.08; letter-spacing: -.02em; margin-bottom: 1rem; }
+  .tc__sub { font-size: 1.05rem; line-height: 1.65; color: var(--muted); max-width: 42rem; margin-inline: auto; }
+
+  /* stage = carousel + side arrows ----------------------------------------- */
+  .stage { position: relative; }
+
+  .arrow {
+    position: absolute; top: 50%; z-index: 5;
+    width: 2.6rem; height: 2.6rem; border-radius: 50%;
+    border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent);
+    background: color-mix(in srgb, var(--surface) 85%, transparent);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    color: var(--fg); cursor: pointer; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    transform: translateY(-50%);
+    transition: background .25s var(--ease), border-color .25s var(--ease),
+                color .25s var(--ease), opacity .35s var(--ease);
+  }
+  .arrow svg { width: 1rem; height: 1rem; transition: transform .35s var(--ease); }
+  /* near the card (≈25rem from center); fold onto the edges on narrow screens */
+  .arrow--prev { left: clamp(.6rem, calc(50% - 25rem), 50%); }
+  .arrow--next { right: clamp(.6rem, calc(50% - 25rem), 50%); }
+  @media (min-width: 768px) {
+    .arrow { width: 3rem; height: 3rem; }
+    .arrow svg { width: 1.1rem; height: 1.1rem; }
+  }
+  .arrow:hover { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .arrow--prev:hover svg { transform: translateX(-2px); }
+  .arrow--next:hover svg { transform: translateX(2px); }
+  .arrow[disabled] { opacity: .25; pointer-events: none; }
+
+  /* carousel ----------------------------------------------------------------- */
+  .carousel { position: relative; width: 100%; overflow: hidden; user-select: none; touch-action: pan-y; }
+  .carousel * { cursor: inherit; }
+  .carousel.is-dragging { cursor: grabbing; }
+  .track { display: flex; will-change: transform; transition: transform .65s var(--ease); }
+  .carousel.is-dragging .track { transition: none; }
+  .slide { flex: 0 0 auto; display: flex; justify-content: center; align-items: center; padding: 1rem clamp(1.4rem, 5vw, 4rem); }
+
+  .card {
+    position: relative; isolation: isolate;
+    width: 100%; max-width: 42rem; background: var(--surface);
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 2rem;
+    display: flex; flex-direction: column; gap: 1.4rem; text-align: left;
+    transition: box-shadow .5s var(--ease), border-color .3s var(--ease);
+  }
+  @media (min-width: 768px) { .card { padding: 2.5rem; } }
+  .card > * { position: relative; z-index: 1; }
+  /* light spot following the cursor (idle: opacity 0 — never hidden) */
+  .card::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit;
+    pointer-events: none; z-index: 0;
+    background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 50%),
+      color-mix(in srgb, var(--fg) 7%, transparent), transparent 60%);
+    opacity: 0; transition: opacity .35s var(--ease);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .card.is-spot::after { opacity: 1; }
+    .card.is-spot {
+      box-shadow: 0 30px 60px -34px var(--shadow-color);
+      border-color: color-mix(in srgb, var(--fg) 16%, var(--line));
+    }
+  }
+
+  /* dramatic reveal of the ACTIVE card (hidden ONLY under .wf-js — anti-stuck).
+     Never touches .track (which carries the carousel translateX). */
+  :global(.wf-js) .slide .card {
+    opacity: 0; transform: translateY(40px) scale(.94);
+    transition: opacity .7s var(--ease), transform .8s var(--easeBack);
+  }
+  :global(.wf-js) .slide.is-active .card.is-revealed { opacity: 1; transform: none; }
+  /* short replay on slide change (scale-in on the newly active card) */
+  :global(.wf-js) .slide.is-replay .card { animation: ti-card-replay .55s var(--easeBack); }
+  @keyframes ti-card-replay {
+    0%   { opacity: .35; transform: translateY(10px) scale(.97); }
+    100% { opacity: 1; transform: none; }
+  }
+
+  .card__quote { font-size: clamp(1.1rem, 1.8vw, 1.3rem); line-height: 1.55; letter-spacing: -.01em; font-weight: 500; }
+  .card__quote::before { content: "\201C\2009"; color: var(--accent); font-weight: 700; }
+  .card__quote::after  { content: "\2009\201D"; color: var(--accent); font-weight: 700; }
+  .card__person { display: flex; align-items: center; gap: .9rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+  .card__initial {
+    width: 2.6rem; height: 2.6rem; border-radius: 50%; flex: 0 0 auto;
+    display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: var(--accent-contrast); font-weight: 700; font-size: 1rem;
+  }
+  .card__meta { display: flex; flex-direction: column; }
+  .card__name { font-weight: 600; font-size: .98rem; }
+  .card__role { color: var(--muted); font-size: .85rem; }
+
+  /* dots ----------------------------------------------------------------------- */
+  .dots { display: flex; gap: .55rem; justify-content: center; margin-top: 2rem; }
+  .dot {
+    width: .55rem; height: .55rem; border-radius: 50%; border: 0; cursor: pointer; padding: 0;
+    background: color-mix(in srgb, var(--fg) 22%, transparent);
+    transition: background .3s var(--ease), transform .3s var(--ease);
+  }
+  .dot[aria-current="true"] { background: var(--accent); transform: scale(1.25); }
+
+  /* accessibility ---------------------------------------------------------------- */
+  @media (prefers-reduced-motion: reduce) {
+    .track, .dot, .arrow, .arrow svg, .card { transition: none !important; }
+    /* reveal = visible immediately; no spot; no replay */
+    :global(.wf-js) .slide .card { opacity: 1 !important; transform: none !important; animation: none !important; }
+    .card::after { display: none; }
+  }
+</style>
+
+<script>
+  document.documentElement.classList.add("wf-js");
+  (function () {
+    const motionOK = !window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+    const finePointer = window.matchMedia("(hover:hover) and (pointer:fine)").matches;
+
+    document.querySelectorAll<HTMLElement>(".ti-tcarousel").forEach((section) => {
+      const carousel = section.querySelector<HTMLElement>(".carousel");
+      const track = section.querySelector<HTMLElement>(".track");
+      const prevBtn = section.querySelector<HTMLButtonElement>(".arrow--prev");
+      const nextBtn = section.querySelector<HTMLButtonElement>(".arrow--next");
+      if (!carousel || !track || !prevBtn || !nextBtn) return;
+      const slides = Array.from(track.children) as HTMLElement[];
+      const dots = Array.from(section.querySelectorAll<HTMLButtonElement>(".dot"));
+      const N = slides.length;
+      if (!N) return;
+      let idx = 0;
+
+      function sizeSlides() {
+        const cw = carousel!.clientWidth;
+        slides.forEach((s) => { s.style.width = cw + "px"; });
+        track!.style.width = N * cw + "px";
+      }
+      function applyTransform(extra: number) {
+        const w = slides[0].offsetWidth;
+        track!.style.transform = "translateX(" + (-idx * w + (extra || 0)) + "px)";
+      }
+      function updateDots() {
+        dots.forEach((d, j) => {
+          if (j === idx) d.setAttribute("aria-current", "true");
+          else d.removeAttribute("aria-current");
+        });
+      }
+      function updateArrows() {
+        prevBtn!.disabled = idx === 0;
+        nextBtn!.disabled = idx === N - 1;
+      }
+
+      /* --- reveal / replay of the active card ---------------------------- */
+      let revealed = false; // has the section entered the screen?
+      function markActive(replay: boolean) {
+        slides.forEach((s, j) => {
+          const active = j === idx;
+          s.classList.toggle("is-active", active);
+          const card = s.querySelector(".card");
+          if (!card) return;
+          if (active && revealed) {
+            card.classList.add("is-revealed");
+            if (replay && motionOK) { // short replay on slide change
+              s.classList.remove("is-replay");
+              void (card as HTMLElement).offsetWidth; // reflow → restart animation
+              s.classList.add("is-replay");
+            }
+          } else {
+            s.classList.remove("is-replay");
+          }
+        });
+      }
+      function revealActive() { // first unveiling (section enters the screen)
+        revealed = true;
+        const card = slides[idx] && slides[idx].querySelector(".card");
+        if (card) { slides[idx].classList.add("is-active"); card.classList.add("is-revealed"); }
+      }
+
+      function goTo(i: number) {
+        const prev = idx;
+        idx = Math.max(0, Math.min(N - 1, i));
+        applyTransform(0); updateDots(); updateArrows();
+        markActive(idx !== prev); // replay only on a real slide change
+      }
+      prevBtn.addEventListener("click", () => goTo(idx - 1));
+      nextBtn.addEventListener("click", () => goTo(idx + 1));
+
+      /* unified drag (mouse + touch) */
+      let down = false, sx = 0, sy = 0, dx = 0, wasDragged = false;
+      let axis: "x" | "y" | null = null;
+      carousel.addEventListener("pointerdown", (e) => {
+        down = true; dx = 0; axis = null;
+        sx = e.clientX; sy = e.clientY;
+        carousel!.classList.add("is-dragging");
+        try { carousel!.setPointerCapture(e.pointerId); } catch (_) { /* noop */ }
+      });
+      carousel.addEventListener("pointermove", (e) => {
+        if (!down) return;
+        const ndx = e.clientX - sx, ndy = e.clientY - sy;
+        if (axis === null && (Math.abs(ndx) > 6 || Math.abs(ndy) > 6)) {
+          axis = Math.abs(ndx) > Math.abs(ndy) ? "x" : "y";
+        }
+        if (axis === "y") return;
+        dx = ndx;
+        if ((idx === 0 && dx > 0) || (idx === N - 1 && dx < 0)) dx *= 0.35;
+        applyTransform(dx);
+      });
+      function endDrag() {
+        if (!down) return;
+        down = false; carousel!.classList.remove("is-dragging");
+        wasDragged = Math.abs(dx) > 4;
+        const threshold = slides[0].offsetWidth * 0.15;
+        if (dx <= -threshold) goTo(idx + 1);
+        else if (dx >= threshold) goTo(idx - 1);
+        else goTo(idx);
+        dx = 0; axis = null;
+      }
+      carousel.addEventListener("pointerup", endDrag);
+      carousel.addEventListener("pointercancel", endDrag);
+      carousel.addEventListener("click", (e) => {
+        if (wasDragged) { e.preventDefault(); e.stopPropagation(); wasDragged = false; }
+      }, true);
+
+      dots.forEach((d) => {
+        d.addEventListener("click", () => goTo(parseInt(d.dataset.i || "0", 10)));
+      });
+      carousel.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight") { e.preventDefault(); goTo(idx + 1); }
+        if (e.key === "ArrowLeft") { e.preventDefault(); goTo(idx - 1); }
+      });
+
+      sizeSlides(); goTo(0);
+      window.addEventListener("resize", () => { sizeSlides(); applyTransform(0); });
+
+      /* ------------------------------------------------------------------
+         Dramatic reveal when the section enters the screen (IO). Anti-stuck
+         failsafe: if IO is missing or never fires, reveal the active card
+         anyway (never stuck at opacity:0).
+         ------------------------------------------------------------------ */
+      function fireReveal() { revealActive(); markActive(false); }
+      if (!("IntersectionObserver" in window)) {
+        fireReveal();
+      } else {
+        const io = new IntersectionObserver((entries, obs) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) { fireReveal(); obs.disconnect(); }
+          });
+        }, { threshold: 0.2 });
+        io.observe(section);
+        setTimeout(() => { if (!revealed) fireReveal(); }, 1200);
+      }
+
+      /* ------------------------------------------------------------------
+         Cursor-following light spot on the active card (fine pointer only,
+         disabled under reduced-motion).
+         ------------------------------------------------------------------ */
+      if (motionOK && finePointer) {
+        carousel.addEventListener("pointermove", (e) => {
+          if (e.pointerType === "touch") return;
+          const card = slides[idx] && slides[idx].querySelector<HTMLElement>(".card");
+          if (!card) return;
+          const r = card.getBoundingClientRect();
+          const px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
+          if (px < 0 || px > 1 || py < 0 || py > 1) { card.classList.remove("is-spot"); return; }
+          card.classList.add("is-spot");
+          card.style.setProperty("--mx", (px * 100).toFixed(1) + "%");
+          card.style.setProperty("--my", (py * 100).toFixed(1) + "%");
+        });
+        carousel.addEventListener("pointerleave", () => {
+          slides.forEach((s) => {
+            const c = s.querySelector(".card");
+            if (c) c.classList.remove("is-spot");
+          });
+        });
+      }
+    });
+  })();
+</script>

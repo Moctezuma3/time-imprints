@@ -1,0 +1,134 @@
+---
+/**
+ * Intégration — section `timelines_process-cards` (section NORMALE, non bleed).
+ * Règles Phase 2 appliquées :
+ *   1. `:root` local supprimé → tokens hérités de la base.
+ *   2. Reset local supprimé.
+ *   3. `min-height:100dvh` + padding vertical interne RETIRÉS → la section
+ *      reçoit le padding uniforme `--section-y` de la base (pas de data-bleed).
+ *   4. Couleurs codées en dur (rgba, #d2d2cc) → tokens (--shadow-color, mix depuis --fg/--line).
+ *   5. Pastille numérotée passée à l'accent du site (--accent / --accent-contrast).
+ *   6. Eyebrow/surtitre SUPPRIMÉ (règle de sobriété typo).
+ *   7. CSS scopé Astro ; JS natif préservé (reveal au scroll + spot curseur).
+ */
+export interface Props {
+  titre?: string;
+  etapes?: { titre: string; texte: string }[];
+}
+const {
+  titre = "Réservez en 3 étapes",
+  etapes = [
+    { titre: "Téléchargez l'app", texte: "Installez AutoAccess sur votre téléphone en quelques secondes." },
+    { titre: "Réservez en ligne", texte: "Choisissez votre véhicule et le créneau qui vous arrange." },
+    { titre: "Déverrouillez & partez", texte: "Ouvrez la voiture avec l'app et prenez la route, 24h/24." },
+  ],
+} = Astro.props;
+const pad = (n: number) => String(n + 1).padStart(2, "0");
+---
+
+<section class="steps">
+  <div class="steps__inner">
+    <header class="steps__head">
+      <h2 class="steps__title" data-slot="titre">{titre}</h2>
+    </header>
+
+    <div class="grid" data-slot="etapes">
+      {etapes.map((e, i) => (
+        <article class="step wf-rev" data-slot-item>
+          <span class="step__num">{pad(i)}</span>
+          <h3 class="step__title" data-field="titre">{e.titre}</h3>
+          <p class="step__desc" data-field="texte">{e.texte}</p>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .steps { --maxw: var(--container); --ease: cubic-bezier(.16,1,.3,1); --easeBack: cubic-bezier(.34,1.56,.64,1); color: var(--fg); }
+  .steps__inner { width: 100%; max-width: var(--maxw); margin: 0 auto; padding-inline: var(--gutter); }
+  .steps__head { max-width: 42rem; margin-bottom: clamp(2.5rem, 5vw, 3.6rem); }
+
+  .grid { display: grid; gap: 1.4rem; grid-template-columns: 1fr; position: relative; }
+  @media (min-width: 820px) {
+    .grid { grid-template-columns: repeat(3, 1fr); gap: 2rem; }
+    .grid::before { content: ""; position: absolute; top: 2.6rem; left: 14%; right: 14%; height: 1px; z-index: 0; background: repeating-linear-gradient(90deg, var(--line) 0 6px, transparent 6px 12px); }
+    .grid::after { content: ""; position: absolute; top: 2.6rem; left: 14%; right: 14%; height: 2px; background: var(--accent); z-index: 0; transform: scaleX(0); transform-origin: left; transition: transform 1s var(--ease); }
+    .wf-js .grid.is-in::after { transform: scaleX(1); }
+  }
+
+  .step {
+    position: relative; z-index: 1; background: var(--surface);
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 1.8rem;
+    display: flex; flex-direction: column; gap: .9rem; isolation: isolate;
+    transition: box-shadow .5s var(--ease), border-color .3s, transform .5s var(--ease);
+  }
+  .step::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 0;
+    background: radial-gradient(340px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--fg) 7%, transparent), transparent 60%);
+    opacity: 0; transition: opacity .35s var(--ease);
+  }
+  .step > * { position: relative; z-index: 1; }
+  @media (hover: hover) and (pointer: fine) {
+    .step:hover { transform: translateY(-6px); box-shadow: 0 32px 60px -30px var(--shadow-color); border-color: color-mix(in srgb, var(--fg) 16%, var(--line)); }
+    .step:hover::after { opacity: 1; }
+  }
+
+  .wf-js .step.wf-rev { opacity: 0; transform: translateY(40px) scale(.94); filter: blur(5px); transition: opacity .8s var(--ease), transform .9s var(--easeBack), filter .8s var(--ease); transition-delay: var(--d, 0s); }
+  .wf-js .step.wf-rev.is-in { opacity: 1; transform: none; filter: none; }
+  .wf-js .grid .step:nth-child(1) { --d: .08s; }
+  .wf-js .grid .step:nth-child(2) { --d: .20s; }
+  .wf-js .grid .step:nth-child(3) { --d: .32s; }
+  .wf-js .grid .step:nth-child(4) { --d: .44s; }
+  .wf-js .grid .step:nth-child(5) { --d: .56s; }
+  .wf-js .grid .step:nth-child(6) { --d: .68s; }
+  .wf-js .step.is-in { transition: box-shadow .5s var(--ease), border-color .3s, transform .5s var(--ease); }
+
+  .step__num {
+    width: 2.6rem; height: 2.6rem; border-radius: 50%;
+    background: var(--accent); color: var(--accent-contrast);
+    display: flex; align-items: center; justify-content: center;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .95rem; font-weight: 700; letter-spacing: .04em;
+  }
+
+  .steps__title { font-size: clamp(2rem, 4.4vw, 3rem); font-weight: 800; line-height: 1.08; letter-spacing: -.02em; margin-bottom: 1rem; }
+  .step__title { font-size: 1.15rem; font-weight: 600; letter-spacing: -.01em; margin-top: .4rem; }
+  .step__desc { color: var(--muted); font-size: .95rem; line-height: 1.6; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+    .wf-js .step.wf-rev { opacity: 1 !important; transform: none !important; filter: none !important; }
+    .wf-js .grid::after { transform: scaleX(1) !important; transition: none !important; }
+  }
+</style>
+
+<script>
+  document.documentElement.classList.add("wf-js");
+  (function () {
+    const reduce = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+    const revs = [].slice.call(document.querySelectorAll(".wf-rev"));
+    const grid = document.querySelector(".grid");
+    if (reduce || !("IntersectionObserver" in window)) {
+      revs.forEach((el: Element) => el.classList.add("is-in"));
+      if (grid) grid.classList.add("is-in");
+    } else {
+      const io = new IntersectionObserver((entries, obs) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) { e.target.classList.add("is-in"); obs.unobserve(e.target); }
+        });
+      }, { threshold: 0.15 });
+      revs.forEach((el: Element) => io.observe(el));
+      if (grid) io.observe(grid);
+    }
+    if (reduce) return;
+    if (!window.matchMedia("(hover:hover) and (pointer:fine)").matches) return;
+    [].forEach.call(document.querySelectorAll(".step"), function (card: HTMLElement) {
+      card.addEventListener("mousemove", function (e: MouseEvent) {
+        const r = card.getBoundingClientRect();
+        card.style.setProperty("--mx", (((e.clientX - r.left) / r.width) * 100).toFixed(1) + "%");
+        card.style.setProperty("--my", (((e.clientY - r.top) / r.height) * 100).toFixed(1) + "%");
+      });
+    });
+  })();
+</script>

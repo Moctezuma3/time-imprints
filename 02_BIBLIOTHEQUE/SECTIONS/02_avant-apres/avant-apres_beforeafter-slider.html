@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- lib:meta -->
+<meta name="lib:id" content="avant-apres_beforeafter-slider">
+<meta name="lib:groupe" content="02-corps">
+<meta name="lib:categorie" content="avant-apres">
+<meta name="lib:intention" content="preuve-confiance">
+<meta name="lib:role" content="avant-apres">
+<meta name="lib:placement" content="section">
+<meta name="lib:niveau" content="2">
+<meta name="lib:titre" content="Curseur avant / après à glisser">
+<meta name="lib:tags" content="JS natif, clair, comparateur">
+<meta name="lib:utilite" content="Comparateur 2 images : poignée draggable qui pilote un clip-path (pointer events unifiés souris/tactile), accessible clavier ← → Home/End. JS natif. (ex-comparatif)">
+<meta name="lib:showcase" content="non">
+<meta name="lib:secteurs" content="artisanat, btp, beaute">
+<meta name="lib:slots" content="titre:titre:court; paires:liste:1-6">
+<meta name="lib:anatomie" content="base:1 paire avant/apres, 1 titre, 1 sous-titre, 1 curseur; titre:H1 centre; sous-titre:paragraphe expliquant de glisser la poignee; images:une image avant et une image apres superposees en deux couches; curseur:poignee ronde draggable au centre pilotant un clip-path qui revele l image apres; cta:bouton de poignee avec icone de fleches; legendes:deux pastilles Avant a gauche et Apres a droite; animation:comparaison interactive au glissement plus apparition en cascade au chargement; hover:la poignee grossit legerement au survol; responsive:compareur pleine largeur limite a 48rem en ratio 3/2">
+<!-- /lib:meta -->
+<title>Curseur avant / après à glisser</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- ==========================================================================
+     STYLE — Interactions 02 · Comparateur avant/après : une image complète
+     dessous, une seconde clippée par un clip-path piloté par le curseur du
+     slider. Drag souris / tactile, accessible clavier (← →). JS natif.
+     ========================================================================== -->
+<style>
+  :root{
+    --bg:#fbfbfa;--fg:#16181d;--muted:#5c6270;--line:#e3e3df;
+    --handle:#16181d;
+    --font:"Outfit",ui-sans-serif,system-ui,-apple-system,sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  img{display:block;width:100%;height:100%;object-fit:cover;user-select:none;-webkit-user-drag:none}
+
+  body{background:var(--bg);color:var(--fg);font-family:var(--font);
+    min-height:100dvh;display:flex;align-items:center;justify-content:center;
+    flex-direction:column;gap:1.4rem;padding:2rem;text-align:center}
+  h1{font-size:clamp(1.6rem,3vw,2rem);font-weight:600;letter-spacing:-.015em;max-width:30rem}
+  p{color:var(--muted);max-width:32rem}
+
+  .compare{
+    --pos:50%;
+    position:relative;width:100%;max-width:48rem;aspect-ratio:3/2;
+    border-radius:1rem;overflow:hidden;
+    border:1px solid var(--line);user-select:none;touch-action:none}
+  .compare__layer{position:absolute;inset:0}
+  .compare__layer--after{
+    clip-path:inset(0 0 0 var(--pos))}
+
+  /* poignée */
+  .handle{
+    position:absolute;top:0;bottom:0;left:var(--pos);
+    width:2px;background:var(--handle);
+    transform:translateX(-1px);
+    pointer-events:none}
+  .handle__btn{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:2.6rem;height:2.6rem;border-radius:50%;
+    background:var(--handle);color:#f4f4f0;
+    display:inline-flex;align-items:center;justify-content:center;
+    pointer-events:auto;cursor:ew-resize;
+    box-shadow:0 8px 18px -10px rgba(22,24,29,.4);
+    transition:transform .2s var(--ease)}
+  .handle__btn:focus-visible{outline:3px solid rgba(22,24,29,.25);outline-offset:3px}
+  .handle__btn:hover{transform:translate(-50%,-50%) scale(1.05)}
+  .handle__btn svg{width:1rem;height:1rem}
+
+  /* labels */
+  .tag{position:absolute;top:1rem;
+    padding:.35rem .7rem;border-radius:99px;
+    background:rgba(22,24,29,.7);color:#fff;
+    font-size:.78rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+    backdrop-filter:blur(8px);pointer-events:none}
+  .tag--before{left:1rem}
+  .tag--after {right:1rem}
+
+  @media (prefers-reduced-motion:reduce){.handle__btn{transition:none}}
+
+  /* --- Animation d'entrée au chargement (cascade) ---------------------- */
+  @keyframes baIn{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+  h1,p{animation:baIn .7s cubic-bezier(.16,1,.3,1) .05s backwards}
+  p{animation-delay:.12s}
+  .compare{animation:baIn .7s cubic-bezier(.16,1,.3,1) .2s backwards}
+  @media (prefers-reduced-motion:reduce){h1,p,.compare{animation:none}}
+</style>
+</head>
+<body>
+
+<h1 data-slot="titre">Comparez avant / après.</h1>
+<p>Glissez la poignée centrale (ou utilisez ← → au clavier après l'avoir focus).</p>
+
+<div class="compare" id="compare" data-slot="paires" data-slot-item>
+  <div class="compare__layer">
+    <img src="https://placehold.co/900x600/8a8a85/1a1a1a?text=AVANT" alt="Avant" data-field="avant">
+  </div>
+  <div class="compare__layer compare__layer--after">
+    <img src="https://placehold.co/900x600/3a3d48/f4f4f0?text=APRÈS" alt="Après" data-field="apres">
+  </div>
+
+  <span class="tag tag--before">Avant</span>
+  <span class="tag tag--after">Après</span>
+
+  <div class="handle">
+    <button type="button" class="handle__btn" id="handle"
+            role="slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50"
+            aria-label="Glisser pour comparer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6L2 12l6 6M16 6l6 6-6 6"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var cmp = document.getElementById('compare');
+    var h   = document.getElementById('handle');
+    var dragging = false;
+
+    function setPos (pct) {
+      pct = Math.max(0, Math.min(100, pct));
+      cmp.style.setProperty('--pos', pct + '%');
+      h.setAttribute('aria-valuenow', Math.round(pct));
+    }
+    function fromClient (clientX) {
+      var r = cmp.getBoundingClientRect();
+      setPos(((clientX - r.left) / r.width) * 100);
+    }
+
+    /* mouse / pointer events unifiés */
+    h.addEventListener('pointerdown', function (e) {
+      dragging = true; h.setPointerCapture(e.pointerId); e.preventDefault();
+    });
+    document.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      fromClient(e.clientX);
+    });
+    document.addEventListener('pointerup', function () { dragging = false; });
+
+    /* clic ailleurs sur le compareur = saute là */
+    cmp.addEventListener('pointerdown', function (e) {
+      if (e.target === h || h.contains(e.target)) return;
+      fromClient(e.clientX);
+    });
+
+    /* clavier */
+    h.addEventListener('keydown', function (e) {
+      var cur = parseFloat(getComputedStyle(cmp).getPropertyValue('--pos')) || 50;
+      var step = e.shiftKey ? 10 : 2;
+      if (e.key === 'ArrowLeft')  { e.preventDefault(); setPos(cur - step); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); setPos(cur + step); }
+      if (e.key === 'Home')       { e.preventDefault(); setPos(0); }
+      if (e.key === 'End')        { e.preventDefault(); setPos(100); }
+    });
+  })();
+</script>
+
+</body>
+</html>

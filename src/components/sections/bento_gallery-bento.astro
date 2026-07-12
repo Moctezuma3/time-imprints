@@ -1,0 +1,216 @@
+---
+/**
+ * Integration — section `bento_gallery-bento` (normal section, not bleed).
+ * Phase 2 rules applied:
+ *   1. Local :root removed → tokens inherited from the base + theme.css.
+ *   2. Local reset + Google Fonts import removed.
+ *   3. Internal vertical padding removed → the base gives `--section-y` rhythm.
+ *   4. Hard-coded colors → tokens (--surface, --bg mixes for overlays,
+ *      --accent-2 for category tags, --shadow-color for shadows).
+ *   5. Placeholder `<a href="#">` tiles → non-interactive `<figure>` tiles
+ *      (no detail page exists; the filterable grid sits right below).
+ *   6. JS scoped to `.ti-bento` roots (safe with 0 or 2 instances per page).
+ *   7. Reveal pattern kept (.wf-rev + IMGCLIP mask + cursor spot), selectors
+ *      that depend on `html.wf-js` wrapped in :global() so Astro scoping
+ *      doesn't sever them from the <html> element.
+ */
+export interface Props {
+  title?: string;
+  subtitle?: string;
+  tiles?: { image: string; label: string; category: string; alt: string }[];
+}
+const {
+  title = "Made with our kits",
+  subtitle = "Real prints from real homes — the best of what you've made together.",
+  tiles = [
+    { image: "/img/gallery-01.jpg", label: "Two of us, in red", category: "Couples", alt: "Red and pink couple body print on a black canvas" },
+    { image: "/img/gallery-02.jpg", label: "Hands & feet", category: "Canvas", alt: "White body print canvas styled next to a sculpture" },
+    { image: "/img/gallery-03.jpg", label: "Family porch day", category: "Family", alt: "Family handprint canvas in pink and red on a porch" },
+    { image: "/img/gallery-04.jpg", label: "Baby's first print", category: "Family", alt: "Tiny baby hand and foot prints on canvas" },
+    { image: "/img/gallery-05.jpg", label: "Moody terrace", category: "Couples", alt: "Couple canvas photographed on a terrace at dusk" },
+    { image: "/img/gallery-06.jpg", label: "Pearlescent pink", category: "Canvas", alt: "Pearlescent pink body print on canvas" },
+    { image: "/img/gallery-07.jpg", label: "Gold on navy", category: "Canvas", alt: "Gold body print on a navy canvas" },
+  ],
+} = Astro.props;
+---
+
+<section class="ti-bento">
+  <div class="work__inner">
+
+    <header class="work__head wf-rev">
+      <div>
+        <h2 class="work__title" data-slot="titre">{title}</h2>
+        <p class="work__sub">{subtitle}</p>
+      </div>
+    </header>
+
+    <div class="bento" data-slot="images">
+      {tiles.map((t) => (
+        <figure class="card wf-rev" data-slot-item>
+          <div class="card__img"><img loading="lazy" src={t.image} alt={t.alt} data-field="image" /></div>
+          <span class="card__spot" aria-hidden="true"></span>
+          <figcaption class="card__overlay">
+            <span class="card__cat" data-field="categorie">{t.category}</span>
+            <span class="card__title" data-field="titre">{t.label}</span>
+          </figcaption>
+        </figure>
+      ))}
+    </div>
+
+  </div>
+</section>
+
+<style>
+  .ti-bento {
+    --ease: cubic-bezier(.22,1,.36,1);
+    --easeBack: cubic-bezier(.34,1.56,.64,1);
+    color: var(--fg);
+  }
+  .work__inner { width: 100%; max-width: var(--container); margin: 0 auto; padding-inline: var(--gutter); }
+
+  .work__head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 2.4rem; max-width: 54rem; }
+  .work__title { font-size: var(--step-3); font-weight: 800; letter-spacing: -.025em; line-height: 1.1; }
+  .work__sub { margin-top: .6rem; color: var(--muted); line-height: 1.6; font-size: var(--step-0); }
+
+  /* bento grid: 4 columns, explicit areas */
+  .bento {
+    display: grid; gap: 1rem;
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: minmax(11rem, 1fr);
+    grid-template-areas:
+      "a a b c"
+      "a a d c"
+      "e f f g"
+      "e f f g";
+  }
+
+  .card {
+    position: relative; overflow: hidden; border-radius: var(--radius);
+    background: var(--surface); border: 1px solid var(--line); margin: 0;
+    transition: transform .35s var(--ease), box-shadow .35s var(--ease);
+  }
+  .card:nth-child(1) { grid-area: a; }   /* 2×2 large */
+  .card:nth-child(2) { grid-area: b; }   /* 1×1 */
+  .card:nth-child(3) { grid-area: c; }   /* 1×2 vertical */
+  .card:nth-child(4) { grid-area: d; }   /* 1×1 */
+  .card:nth-child(5) { grid-area: e; }   /* 1×2 vertical */
+  .card:nth-child(6) { grid-area: f; }   /* 2×2 large */
+  .card:nth-child(7) { grid-area: g; }   /* 1×2 vertical */
+
+  .card__img { position: absolute; inset: 0; transition: transform .6s var(--ease); }
+  .card__img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+  /* light spot following the cursor (doesn't touch the card transform) */
+  .card__spot {
+    position: absolute; inset: 0; pointer-events: none; z-index: 1;
+    background: radial-gradient(320px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--accent-contrast) 28%, transparent), transparent 60%);
+    opacity: 0; transition: opacity .35s var(--ease); mix-blend-mode: soft-light;
+  }
+  .card__overlay {
+    position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 1.2rem 1.3rem; color: var(--accent-contrast); margin: 0;
+    background: linear-gradient(to top, color-mix(in srgb, var(--bg) 82%, transparent) 0%, color-mix(in srgb, var(--bg) 24%, transparent) 50%, transparent 80%);
+    opacity: .92; transition: opacity .35s var(--ease);
+  }
+  .card__cat {
+    font-size: .74rem; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--accent-2); font-weight: 600; margin-bottom: .25rem;
+  }
+  .card__title { font-size: 1.15rem; font-weight: 600; letter-spacing: -.005em; line-height: 1.2; }
+
+  @media (hover: hover) and (pointer: fine) {
+    .card:hover { transform: translateY(-3px); box-shadow: 0 20px 40px -22px var(--shadow-color); z-index: 3; }
+    .card:hover .card__img { transform: scale(1.08); }
+    .card:hover .card__overlay { opacity: 1; }
+    .card:hover .card__spot { opacity: 1; }
+  }
+
+  @media (max-width: 780px) {
+    .bento {
+      grid-template-columns: repeat(2, 1fr);
+      grid-auto-rows: minmax(8rem, 1fr);
+      grid-template-areas:
+        "a a"
+        "a a"
+        "b c"
+        "d c"
+        "e f"
+        "e f"
+        "g g";
+    }
+  }
+  @media (max-width: 480px) {
+    .bento { grid-template-columns: 1fr; grid-template-areas: "a" "b" "c" "d" "e" "f" "g"; }
+    .card { aspect-ratio: 5/3; }
+  }
+
+  /* dramatic scroll reveal (rise + scale + blur, spring) — gated on html.wf-js */
+  :global(.wf-js) .wf-rev {
+    opacity: 0; transform: translateY(46px) scale(.93); filter: blur(6px);
+    transition: opacity .8s var(--ease), transform .9s var(--easeBack), filter .8s var(--ease);
+  }
+  :global(.wf-js) .wf-rev.is-in { opacity: 1; transform: none; filter: none; }
+  /* cards: cascading reveal (overrides the hover transition while hidden) */
+  :global(.wf-js) .bento .card.wf-rev {
+    transition: opacity .8s var(--ease), transform .9s var(--easeBack), filter .8s var(--ease);
+    transition-delay: var(--d, 0s);
+  }
+  :global(.wf-js) .bento .card:nth-child(1) { --d: .06s; }
+  :global(.wf-js) .bento .card:nth-child(2) { --d: .13s; }
+  :global(.wf-js) .bento .card:nth-child(3) { --d: .20s; }
+  :global(.wf-js) .bento .card:nth-child(4) { --d: .27s; }
+  :global(.wf-js) .bento .card:nth-child(5) { --d: .34s; }
+  :global(.wf-js) .bento .card:nth-child(6) { --d: .41s; }
+  :global(.wf-js) .bento .card:nth-child(7) { --d: .48s; }
+  /* once revealed, restore the soft hover transition (lift + shadow) */
+  :global(.wf-js) .bento .card.is-in { transition: transform .35s var(--ease), box-shadow .35s var(--ease); }
+
+  /* IMGCLIP: each tile's image unveils via a clip-path mask on entry */
+  @keyframes tiBentoImgReveal {
+    from { clip-path: inset(0 0 100% 0); transform: scale(1.12); }
+    to { clip-path: inset(0 0 0 0); transform: scale(1); }
+  }
+  :global(.wf-js) .bento .card:not(.is-in) .card__img { clip-path: inset(0 0 100% 0); }
+  :global(.wf-js) .bento .card.is-in .card__img {
+    clip-path: none;
+    animation: tiBentoImgReveal .85s var(--ease) var(--d, 0s) backwards;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card, .card__img, .card__overlay, .card__spot { transition: none; }
+    :global(.wf-js) .wf-rev { opacity: 1 !important; transform: none !important; filter: none !important; }
+    :global(.wf-js) .bento .card .card__img { clip-path: none !important; }
+    :global(.wf-js) .bento .card.is-in .card__img { animation: none !important; }
+  }
+</style>
+
+<script>
+  document.documentElement.classList.add("wf-js");
+  document.querySelectorAll<HTMLElement>(".ti-bento").forEach((section) => {
+    const reduce = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+    const revs = Array.from(section.querySelectorAll(".wf-rev"));
+
+    /* scroll reveal */
+    if (reduce || !("IntersectionObserver" in window)) {
+      revs.forEach((el) => el.classList.add("is-in"));
+    } else {
+      const io = new IntersectionObserver((entries, obs) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) { e.target.classList.add("is-in"); obs.unobserve(e.target); }
+        });
+      }, { threshold: 0.15 });
+      revs.forEach((el) => io.observe(el));
+    }
+
+    /* cursor-following spot (fine pointer, no reduced-motion) */
+    if (reduce) return;
+    if (!window.matchMedia("(hover:hover) and (pointer:fine)").matches) return;
+    section.querySelectorAll<HTMLElement>(".card").forEach((card) => {
+      card.addEventListener("mousemove", (e: MouseEvent) => {
+        const r = card.getBoundingClientRect();
+        card.style.setProperty("--mx", (((e.clientX - r.left) / r.width) * 100).toFixed(1) + "%");
+        card.style.setProperty("--my", (((e.clientY - r.top) / r.height) * 100).toFixed(1) + "%");
+      });
+    });
+  });
+</script>

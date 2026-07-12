@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- lib:meta -->
+<meta name="lib:id" content="pastilles-badges_badge-corner-ribbon">
+<meta name="lib:groupe" content="00-elements">
+<meta name="lib:categorie" content="pastilles-badges">
+<meta name="lib:intention" content="ouverture-captation">
+<meta name="lib:placement" content="overlay">
+<meta name="lib:niveau" content="1">
+<meta name="lib:titre" content="Badge ruban d'angle">
+<meta name="lib:tags" content="CSS pur, badge, ruban">
+<meta name="lib:utilite" content="Ruban diagonal dans un angle du hero (« Nouveau », « Promo », « Édition limitée »). Accroche l'œil sans gêner le contenu. CSS pur (rotation + clip).">
+<meta name="lib:showcase" content="non">
+<meta name="lib:secteurs" content="commerce, b2c">
+<meta name="lib:slots" content="label:ligne:court">
+<meta name="lib:anatomie" content="base:badge ruban diagonal pose dans un angle, demo sur carte neutre; badge:ruban en diagonale a 45 degres dans le coin superieur droit, fond accent texte blanc majuscules; animation:apparition en montee de la carte au chargement; responsive:ruban en overlay absolu, conteneur en position relative et overflow hidden pour le clip">
+<!-- /lib:meta -->
+<title>Badge — Ruban d'angle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- ==========================================================================
+     STYLE — Badge · Ruban d'angle (isolé, sans hero). CSS pur.
+     Le ruban a besoin d'un coin : il est posé sur une carte neutre.
+     Le conteneur doit être position:relative + overflow:hidden pour le clip.
+     ========================================================================== -->
+<style>
+  :root{--bg:#edeff2;--fg:#16181d;--accent:#e4572e;
+    --font:"Outfit",ui-sans-serif,system-ui,-apple-system,sans-serif;}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  img{display:block;max-width:100%}
+  body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.5}
+  .stage{min-height:100vh;display:grid;place-items:center;padding:3rem 1.4rem}
+  /* Carte neutre minimale qui accueille le ruban d'angle */
+  .card{position:relative;overflow:hidden;width:min(22rem,90vw);height:13rem;
+    background:#fff;border:1px solid #e6e6ea;border-radius:1rem;box-shadow:0 14px 36px -24px rgba(0,0,0,.3)}
+  /* LE BADGE (ruban d'angle, en haut à droite) */
+  .ribbon{position:absolute;top:0;right:0;width:9rem;height:9rem;overflow:hidden;z-index:3;pointer-events:none}
+  .ribbon span{position:absolute;top:1.5rem;right:-2.6rem;transform:rotate(45deg);
+    background:var(--accent);color:#fff;font-size:.78rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+    padding:.4rem 2.8rem;box-shadow:0 6px 14px -6px rgba(0,0,0,.35)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  /* --- Animation d'entrée au chargement ------------------------------- */
+  @keyframes secIn{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+  .card{animation:secIn .6s cubic-bezier(.16,1,.3,1) .05s backwards}
+  @media (prefers-reduced-motion:reduce){.card{animation:none}}
+</style>
+</head>
+<body>
+<!-- STRUCTURE — ruban d'angle isolé, posé sur une carte neutre (le ruban a besoin
+     d'un coin). Réutilisez le <div class="ribbon"> sur votre conteneur. -->
+<section class="stage">
+  <div class="card">
+    <div class="ribbon"><span data-slot="label">Nouveau</span></div>
+  </div>
+</section>
+</body>
+</html>

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- lib:meta -->
+<meta name="lib:id" content="heros_hero-slider-auto-video">
+<meta name="lib:groupe" content="01-header">
+<meta name="lib:categorie" content="heros">
+<meta name="lib:intention" content="ouverture-captation">
+<meta name="lib:placement" content="section">
+<meta name="lib:niveau" content="2">
+<meta name="lib:auteur" content="CLAUDE (généré sur demande — variante vidéo YouTube de heros_hero-slider-auto)">
+<meta name="lib:titre" content="Slider auto plein écran — vidéos YouTube en fond (sans habillage)">
+<meta name="lib:tags" content="vidéo, youtube, JS natif, carousel, autoplay, plein écran, sans contrôles, drag">
+<meta name="lib:utilite" content="Variante vidéo YouTube du slider auto : chaque diapositive a une VIDÉO YOUTUBE en fond, affichée SANS habillage — pas de contrôles, pas de play/pause, pas de logo ni titre YouTube, non cliquable (pointer-events + sur-cadrage qui rogne l'UI). Autoplay muet + boucle. Slider plein écran (100dvh), diapositives qui glissent, drag/flèches/clavier/autoplay. Remplacez l'ID YouTube de chaque slide (2 endroits : embed + playlist). youtube-nocookie. JS natif.">
+<meta name="lib:showcase" content="non">
+<meta name="lib:secteurs" content="polyvalent">
+<meta name="lib:slots" content="slides:liste:2-5">
+<meta name="lib:anatomie" content="base:3 diapositives, chacune 1 surtitre, 1 titre, 1 sous-titre, 1 à 2 boutons et 1 vidéo YouTube de fond; videos:iframe youtube-nocookie par slide en autoplay muet boucle, dimensionnée pour couvrir avec un scale qui rogne l habillage, pointer-events desactives, controls=0 modestbranding=1 rel=0 disablekb=1 fs=0 iv_load_policy=3; voile:degrade sombre pour lisibilite; surtitre:eyebrow majuscules; titre:H1 puis H2 clamp 2.5 à 4.5rem gras 800; sous-titre:paragraphe court; cta:bouton primaire clair + bouton ghost translucide; controles:2 flèches rondes, 3 dots (actif allonge), compteur 01/03; animation:glissement translateX (rail flex + clones), autoplay 5.5s, contenu en cascade; hover:survol met l autoplay en pause; navigation:drag pointeur + flèches clavier; responsive:plein viewport 100dvh, flèches réduites et compteur masqué sous 600px; a11y:reduced-motion neutralise glissement et cascade et retire les vidéos (fond sombre)">
+<!-- /lib:meta -->
+<title>Slider auto plein écran — vidéos YouTube en fond (sans habillage)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- ==========================================================================
+     STYLE — Hero · Slider fullscreen à VIDÉOS YOUTUBE de fond (sans habillage)
+     Chaque slide = 1 iframe youtube-nocookie qui couvre (cover + scale pour
+     rogner l'UI), non interactive (pointer-events:none), autoplay muet boucle.
+     ⚠ Remplacez YT_ID_1/2/3 (2 fois chacun : embed + playlist).
+     ========================================================================== -->
+<style>
+  /* --- 1. TOKENS ---------------------------------------------------------- */
+  :root{
+    --fg:#111111;
+    --font:"Outfit",ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+    --radius:8px;
+    --ease:cubic-bezier(.22,.61,.36,1);
+    --ease-out:cubic-bezier(.16,1,.3,1);
+    --slide:.7s;
+    --gutter:clamp(1rem,3vw,2rem);
+    --yt-scale:1.35;      /* sur-cadrage : rogne l'habillage YouTube (titre/logo) */
+  }
+
+  /* --- 2. RESET ----------------------------------------------------------- */
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{color:var(--fg);font-family:var(--font);line-height:1.6;background:#0b0b0d}
+  a{text-decoration:none;color:inherit}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  img,svg{display:block;max-width:100%}
+
+  /* --- 3. LAYOUT slider (rail qui glisse) -------------------------------- */
+  .hero-slider{cursor:grab;-webkit-user-select:none;user-select:none;
+    position:relative;height:100vh;height:100dvh;
+    overflow:hidden;background:#0b0b0d;}
+  .hero-slider.is-grabbing{cursor:grabbing}
+
+  .hero-slider__track{display:flex;height:100%;width:100%;
+    transition:transform var(--slide) var(--ease-out);will-change:transform}
+
+  .hero-slide{position:relative;flex:0 0 100%;width:100%;height:100%;overflow:hidden;background:#0b0b0d}
+
+  /* fond vidéo YouTube (couvre + rogne l'UI, non interactif) */
+  .hero-slide__bg{position:absolute;inset:0;overflow:hidden}
+  .hero-slide__bg iframe{
+    position:absolute;top:50%;left:50%;border:0;pointer-events:none;
+    width:100vw;height:56.25vw;min-width:177.78dvh;min-height:100dvh;   /* 16:9, plein-hauteur (dvh), cover */
+    transform:translate(-50%,-50%)}   /* centré, aucun scale/zoom */
+
+  /* voile lisibilité gradient */
+  .hero-slide::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:
+      linear-gradient(180deg,rgba(11,11,13,.15) 0%,rgba(11,11,13,.55) 55%,rgba(11,11,13,.85) 100%),
+      linear-gradient(90deg,rgba(11,11,13,.65) 0%,rgba(11,11,13,0) 60%)}
+
+  .hero-slide__content{pointer-events:none;position:relative;z-index:1;
+    max-width:1440px;height:100%;margin:0 auto;
+    padding:0 var(--gutter) clamp(3rem,6vh,5rem);
+    display:flex;flex-direction:column;justify-content:flex-end;color:#fff}
+
+  /* --- 4. TYPOGRAPHIE + animations cascade ------------------------------- */
+  .hero-slide__eyebrow{display:inline-flex;align-items:center;gap:.5rem;
+    font-size:.8125rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+    color:#fff;margin-bottom:1rem}
+  .hero-slide__title{font-size:clamp(2.5rem,6vw,4.5rem);font-weight:800;
+    letter-spacing:-.025em;line-height:1.02;margin-bottom:1.25rem;max-width:28rem}
+  .hero-slide__sub{font-size:1.0625rem;line-height:1.55;color:rgba(255,255,255,.92);
+    max-width:32rem;margin-bottom:1.75rem}
+  .hero-slide__actions{display:flex;flex-wrap:wrap;gap:.75rem}
+
+  @keyframes h17-rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+  .hero-slide.animate .hero-slide__eyebrow{animation:h17-rise .8s var(--ease-out) .2s both}
+  .hero-slide.animate .hero-slide__title{animation:h17-rise .85s var(--ease-out) .35s both}
+  .hero-slide.animate .hero-slide__sub{animation:h17-rise .85s var(--ease-out) .5s both}
+  .hero-slide.animate .hero-slide__actions{animation:h17-rise .85s var(--ease-out) .65s both}
+
+  /* --- 5. ACCENT / boutons ------------------------------------------------- */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
+    font-weight:600;font-size:.9375rem;padding:14px 22px;border-radius:var(--radius);
+    border:1px solid transparent;cursor:pointer;
+    box-shadow:0 6px 20px -6px rgba(0,0,0,.45);
+    transition:transform .2s var(--ease),background .2s var(--ease),
+      border-color .2s var(--ease),color .2s var(--ease)}
+  .btn svg{width:1rem;height:1rem;flex-shrink:0}
+  .btn--primary{background:#fff;color:var(--fg)}
+  .btn--primary:hover{background:#f0f0f0;transform:translateY(-2px)}
+  .btn--ghost{background:rgba(255,255,255,.08);color:#fff;
+    border-color:rgba(255,255,255,.45);backdrop-filter:blur(8px)}
+  .btn--ghost:hover{background:#fff;color:var(--fg);
+    border-color:#fff;transform:translateY(-2px)}
+
+  /* --- 6. CONTROLS (flèches + dots + compteur) --------------------------- */
+  .hero-slider__arrow{position:absolute;top:50%;transform:translateY(-50%);
+    z-index:6;display:flex;align-items:center;justify-content:center;
+    width:3rem;height:3rem;border-radius:50%;
+    background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35);
+    color:#fff;backdrop-filter:blur(8px);padding:0;
+    transition:background .2s var(--ease),transform .2s var(--ease-out),
+      border-color .2s var(--ease)}
+  .hero-slider__arrow:hover{background:rgba(255,255,255,.95);color:var(--fg);
+    border-color:#fff;transform:translateY(-50%) scale(1.05)}
+  .hero-slider__arrow svg{width:1.1rem;height:1.1rem}
+  .hero-slider__arrow--prev{left:clamp(.75rem,2vw,1.5rem)}
+  .hero-slider__arrow--next{right:clamp(.75rem,2vw,1.5rem)}
+
+  .hero-slider__controls{position:absolute;left:0;right:0;bottom:1.25rem;
+    z-index:5;display:flex;justify-content:center;align-items:center;
+    gap:.75rem;padding:0 var(--gutter)}
+  .hero-slider__dots{display:flex;gap:.55rem}
+  .hero-slider__dot{width:24px;height:3px;border-radius:2px;
+    background:rgba(255,255,255,.35);border:0;padding:0;cursor:pointer;
+    pointer-events:auto;
+    transition:background .3s var(--ease),width .3s var(--ease)}
+  .hero-slider__dot.is-on{background:#fff;width:48px}
+
+  .hero-slider__count{position:absolute;right:var(--gutter);bottom:1.5rem;
+    z-index:5;font-size:.875rem;font-weight:600;
+    color:rgba(255,255,255,.85);font-variant-numeric:tabular-nums}
+  .hero-slider__count strong{color:#fff;font-size:1rem}
+
+  .hero-slide__actions,.hero-slider__dot,.hero-slider__arrow{pointer-events:auto}
+
+  /* --- 7. RESPONSIVE / ACCESSIBILITÉ -------------------------------------- */
+  @media (max-width:600px){
+    .hero-slider__arrow{width:2.5rem;height:2.5rem;background:rgba(255,255,255,.18)}
+    .hero-slider__arrow svg{width:1rem;height:1rem}
+    .hero-slider__count{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .hero-slider__track{transition:none!important}
+    .hero-slide.animate *{animation:none!important}
+  }
+</style>
+</head>
+<body>
+
+<!-- ==========================================================================
+     STRUCTURE — un rail (.hero-slider__track) qui glisse, une .hero-slide par
+     diapositive. Chaque fond = 1 iframe YouTube.
+     ⚠ Remplacez YT_ID_1 / YT_ID_2 / YT_ID_3 (2 fois chacun : embed ET playlist).
+        La vidéo doit autoriser l'intégration. Autoplay = muet obligatoire.
+     ========================================================================== -->
+<section class="hero-slider" id="heroSlider">
+
+  <div class="hero-slider__track" id="heroTrack" data-slot="slides">
+
+    <article class="hero-slide is-on" data-slide="0" aria-hidden="false" data-slot-item>
+      <div class="hero-slide__bg">
+        <iframe src="https://www.youtube-nocookie.com/embed/YT_ID_1?autoplay=1&mute=1&loop=1&playlist=YT_ID_1&controls=0&modestbranding=1&rel=0&disablekb=1&fs=0&playsinline=1&iv_load_policy=3"
+                title="Vidéo de fond — slide 1" allow="autoplay; encrypted-media"
+                referrerpolicy="strict-origin-when-cross-origin" tabindex="-1" aria-hidden="true" data-field="video"></iframe>
+      </div>
+      <div class="hero-slide__content">
+        <span class="hero-slide__eyebrow">Slide 01 · Catégorie</span>
+        <h1 class="hero-slide__title" data-field="titre">Titre du slide.</h1>
+        <p class="hero-slide__sub" data-field="accroche">Un sous-titre court qui développe l'accroche en deux lignes maximum.</p>
+        <div class="hero-slide__actions">
+          <a class="btn btn--primary" href="#" data-field="cta">CTA principal
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a class="btn btn--ghost" href="#" data-field="cta">CTA secondaire</a>
+        </div>
+      </div>
+    </article>
+
+    <article class="hero-slide" data-slide="1" aria-hidden="true">
+      <div class="hero-slide__bg">
+        <iframe src="https://www.youtube-nocookie.com/embed/YT_ID_2?autoplay=1&mute=1&loop=1&playlist=YT_ID_2&controls=0&modestbranding=1&rel=0&disablekb=1&fs=0&playsinline=1&iv_load_policy=3"
+                title="Vidéo de fond — slide 2" allow="autoplay; encrypted-media"
+                referrerpolicy="strict-origin-when-cross-origin" tabindex="-1" aria-hidden="true"></iframe>
+      </div>
+      <div class="hero-slide__content">
+        <span class="hero-slide__eyebrow">Slide 02 · Catégorie</span>
+        <h2 class="hero-slide__title">Deuxième slide.</h2>
+        <p class="hero-slide__sub">Texte de remplacement pour la deuxième diapositive.</p>
+        <div class="hero-slide__actions">
+          <a class="btn btn--primary" href="#">CTA principal
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a class="btn btn--ghost" href="#">CTA secondaire</a>
+        </div>
+      </div>
+    </article>
+
+    <article class="hero-slide" data-slide="2" aria-hidden="true">
+      <div class="hero-slide__bg">
+        <iframe src="https://www.youtube-nocookie.com/embed/YT_ID_3?autoplay=1&mute=1&loop=1&playlist=YT_ID_3&controls=0&modestbranding=1&rel=0&disablekb=1&fs=0&playsinline=1&iv_load_policy=3"
+                title="Vidéo de fond — slide 3" allow="autoplay; encrypted-media"
+                referrerpolicy="strict-origin-when-cross-origin" tabindex="-1" aria-hidden="true"></iframe>
+      </div>
+      <div class="hero-slide__content">
+        <span class="hero-slide__eyebrow">Slide 03 · Catégorie</span>
+        <h2 class="hero-slide__title">Troisième.</h2>
+        <p class="hero-slide__sub">Encore une diapositive de démonstration.</p>
+        <div class="hero-slide__actions">
+          <a class="btn btn--primary" href="#">CTA principal
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div>
+      </div>
+    </article>
+
+  </div>
+
+  <button class="hero-slider__arrow hero-slider__arrow--prev" type="button" id="heroPrev" aria-label="Slide précédente">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <button class="hero-slider__arrow hero-slider__arrow--next" type="button" id="heroNext" aria-label="Slide suivante">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
+
+  <div class="hero-slider__controls">
+    <div class="hero-slider__dots" id="heroDots">
+      <button class="hero-slider__dot is-on" type="button" aria-label="Slide 1"></button>
+      <button class="hero-slider__dot" type="button" aria-label="Slide 2"></button>
+      <button class="hero-slider__dot" type="button" aria-label="Slide 3"></button>
+    </div>
+  </div>
+
+  <div class="hero-slider__count" aria-live="polite"><strong id="heroSlideNum">01</strong> / 03</div>
+</section>
+
+<!-- ==========================================================================
+     SCRIPT — glissement (translateX) + boucle (clones) + autoplay + dots +
+     flèches + drag live. Les vidéos YouTube tournent en autoplay (params).
+     En reduced-motion : on retire les iframes (fond sombre, aucune vidéo).
+     ========================================================================== -->
+<script>
+  (function () {
+    var slider = document.getElementById('heroSlider');
+    var track = document.getElementById('heroTrack');
+    if (!slider || !track) return;
+    var rm = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+    /* reduced-motion : pas de vidéo animée en autoplay → on retire les iframes */
+    if (rm) {
+      [].forEach.call(track.querySelectorAll('.hero-slide__bg iframe'), function (f) { f.remove(); });
+    }
+
+    var real = [].slice.call(track.querySelectorAll('.hero-slide'));
+    var N = real.length;
+    var dots = [].slice.call(document.querySelectorAll('#heroDots .hero-slider__dot'));
+    var counter = document.getElementById('heroSlideNum');
+    if (N < 2) return;
+
+    var cloneFirst = real[0].cloneNode(true);
+    var cloneLast = real[N - 1].cloneNode(true);
+    [cloneFirst, cloneLast].forEach(function (c) {
+      c.classList.remove('is-on', 'animate');
+      c.setAttribute('aria-hidden', 'true');
+      c.setAttribute('data-clone', '1');
+    });
+    track.insertBefore(cloneLast, real[0]);
+    track.appendChild(cloneFirst);
+    var children = [].slice.call(track.children);
+
+    var pos = 1;
+    var busy = false;
+
+    function pad (n) { return String(n).padStart(2, '0'); }
+    function realIndex (p) { if (p === 0) return N - 1; if (p === N + 1) return 0; return p - 1; }
+
+    function applyTransform (withTransition) {
+      track.style.transition = (withTransition && !rm) ? '' : 'none';
+      track.style.transform = 'translateX(-' + (pos * 100) + '%)';
+    }
+    function markActive (animate) {
+      children.forEach(function (c, i) { c.classList.toggle('is-on', i === pos); });
+      if (animate && !rm) {
+        children.forEach(function (c) { c.classList.remove('animate'); });
+        void track.offsetWidth;
+        children[pos].classList.add('animate');
+      }
+      var ri = realIndex(pos);
+      dots.forEach(function (d, i) { d.classList.toggle('is-on', i === ri); });
+      if (counter) counter.textContent = pad(ri + 1);
+    }
+    function settle () {
+      if (pos === N + 1) { pos = 1; applyTransform(false); markActive(false); void track.offsetWidth; }
+      else if (pos === 0) { pos = N; applyTransform(false); markActive(false); void track.offsetWidth; }
+    }
+    function move (delta) {
+      if (busy) return;
+      busy = true;
+      pos += delta;
+      applyTransform(true);
+      markActive(true);
+      if (rm) { settle(); busy = false; }
+    }
+    function goTo (ri) {
+      if (busy) return;
+      var target = ri + 1;
+      if (target === pos) return;
+      busy = true;
+      pos = target;
+      applyTransform(true);
+      markActive(true);
+      if (rm) busy = false;
+    }
+
+    track.addEventListener('transitionend', function (e) {
+      if (e.target !== track || e.propertyName !== 'transform') return;
+      settle();
+      busy = false;
+    });
+
+    applyTransform(false);
+    markActive(true);
+
+    var t, paused = false;
+    function tick () { if (!paused && !rm) move(1); }
+    function start () { stop(); if (!rm) t = setInterval(tick, 5500); }
+    function stop () { clearInterval(t); }
+
+    dots.forEach(function (d, i) {
+      d.addEventListener('click', function () { paused = true; stop(); goTo(i); });
+    });
+    var prevBtn = document.getElementById('heroPrev');
+    var nextBtn = document.getElementById('heroNext');
+    if (prevBtn) prevBtn.addEventListener('click', function () { paused = true; stop(); move(-1); });
+    if (nextBtn) nextBtn.addEventListener('click', function () { paused = true; stop(); move(1); });
+
+    slider.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowLeft') { paused = true; stop(); move(-1); }
+      else if (e.key === 'ArrowRight') { paused = true; stop(); move(1); }
+    });
+
+    var pStartX = 0, pStartY = 0, dragging = false, dragMoved = false, width = 1;
+    slider.addEventListener('pointerdown', function (e) {
+      if (busy) return;
+      if (e.target.closest('.hero-slider__arrow') || e.target.closest('.hero-slider__dot') || e.target.closest('.hero-slide__actions')) return;
+      pStartX = e.clientX; pStartY = e.clientY;
+      dragging = true; dragMoved = false;
+      width = slider.clientWidth || 1;
+      track.style.transition = 'none';
+      slider.classList.add('is-grabbing');
+      slider.setPointerCapture(e.pointerId);
+      stop();
+    });
+    slider.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      var dx = e.clientX - pStartX;
+      if (Math.abs(dx) > 5) dragMoved = true;
+      track.style.transform = 'translateX(' + (-(pos * 100) + dx / width * 100) + '%)';
+    });
+    function endDrag (e) {
+      if (!dragging) return;
+      dragging = false;
+      slider.classList.remove('is-grabbing');
+      track.style.transition = '';
+      var dx = e.clientX - pStartX, dy = e.clientY - pStartY;
+      if (dragMoved && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+        paused = true;
+        if (dx < 0) move(1); else move(-1);
+      } else {
+        applyTransform(true);
+      }
+      if (!paused) start();
+    }
+    slider.addEventListener('pointerup', endDrag);
+    slider.addEventListener('pointercancel', function () {
+      if (!dragging) return;
+      dragging = false; slider.classList.remove('is-grabbing');
+      track.style.transition = ''; applyTransform(true);
+      if (!paused) start();
+    });
+
+    slider.addEventListener('mouseenter', stop);
+    slider.addEventListener('mouseleave', function () { if (!paused) start(); });
+
+    start();
+  })();
+</script>
+
+</body>
+</html>

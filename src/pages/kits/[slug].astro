@@ -1,0 +1,50 @@
+---
+/**
+ * kits/[slug].astro — product detail page for each of the 5 kits.
+ * ProductHero (gallery + price + contents + colors + DM CTA),
+ * reviews carousel, cross-sell row, final CTA band.
+ */
+import Layout from "../../layouts/Layout.astro";
+import AnnouncementBar from "../../components/sections/utilitaire_announcement-bar.astro";
+import Nav from "../../components/sections/navbars_nav-sticky-simple.astro";
+import Cart from "../../components/Cart.astro";
+import ProductHero from "../../components/sections/carrousel_products-featured-carousel.astro";
+import Reviews from "../../components/sections/testimonials_testimonials-carousel.astro";
+import KitsRow from "../../components/sections/carrousel_products-horizontal-scroll.astro";
+import CtaBand from "../../components/sections/bandeau_divider-cta-band.astro";
+import Footer from "../../components/sections/pieds-de-page_footer-bigtype.astro";
+import { PRODUCTS, SITE } from "../../data/site";
+
+export function getStaticPaths() {
+  return PRODUCTS.map((product) => ({
+    params: { slug: product.slug },
+    props: { product },
+  }));
+}
+
+const { product } = Astro.props;
+---
+
+<Layout
+  title={`${product.name} — ${product.priceEur} € — ${SITE.name}`}
+  description={`${product.short} ${product.priceEur} € / ${product.priceUah} ₴, skin-safe paint, worldwide shipping. Order via Instagram DM.`}
+  lang="en"
+>
+  <Fragment slot="header">
+    <AnnouncementBar />
+    <Nav currentPath="/kits/" />
+    <Cart />
+  </Fragment>
+
+  <ProductHero product={product} />
+  <Reviews />
+  <KitsRow title="You might also love" excludeSlug={product.slug} />
+  <CtaBand
+    title="Can't decide? We'll help."
+    text="Take the 15-second quiz or browse all five kits."
+    ctaLabel="Browse all kits"
+    ctaHref="/kits/"
+  />
+
+  <Footer slot="footer" />
+</Layout>

@@ -1,0 +1,234 @@
+---
+/**
+ * Integration — section `timeline_about-story-timeline` (normal section, non bleed).
+ * Phase 2 rules applied:
+ *   1. Local :root tokens, reset, body styles and Google-Fonts import removed → base tokens.
+ *   2. `min-height:100dvh` + vertical padding removed → uniform `--section-y` rhythm.
+ *   3. Hard-coded colors → theme tokens; progress line traced in the brand
+ *      pink→cyan gradient (var(--accent) → var(--accent-2)), cursor dot in accent.
+ *   4. `h1` demoted to `h2` (section lives inside a page, not as its hero).
+ *   5. JS scoped to `.ti-story-timeline` roots (safe with 0 or n instances);
+ *      hidden reveal state gated behind `:global(.wf-js)`.
+ */
+export interface Props {
+  eyebrow?: string;
+  title?: string;
+  intro?: string;
+  milestones?: { year: string; title: string; text: string }[];
+}
+const {
+  eyebrow = "Milestones",
+  title = "From one black canvas to 58K of you.",
+  intro = "What started as one messy evening in Kyiv in 2023 became a small studio shipping moments worldwide. Here is how it happened.",
+  milestones = [
+    {
+      year: "2023",
+      title: "The first imprints",
+      text: "The first hand-print kits ship across Ukraine — 399 ₴, a black canvas and two colors.",
+    },
+    {
+      year: "2024",
+      title: "Color moves in",
+      text: "The pearlescent palette arrives: orange, green, sky blue, gold, pink, silver.",
+    },
+    {
+      year: "2025",
+      title: "The internet notices",
+      text: "One reel hits 985K likes. Hugs and Kisses t-shirt kits sell out again and again.",
+    },
+    {
+      year: "2026",
+      title: "Worldwide, and counting",
+      text: "58,000 followers, five kits, orders shipping worldwide. We're just getting started.",
+    },
+  ],
+} = Astro.props;
+---
+
+<section class="ti-story-timeline">
+  <div class="tl__inner">
+
+    <header class="tl__head">
+      <span class="tl__eyebrow">{eyebrow}</span>
+      <h2 class="tl__title" data-slot="titre">{title}</h2>
+      <p class="tl__sub" data-slot="texte">{intro}</p>
+    </header>
+
+    <ol class="timeline" data-slot="etapes">
+      <span class="timeline__fill" aria-hidden="true"></span>
+      <span class="timeline__dot" aria-hidden="true"></span>
+      {milestones.map((m) => (
+        <li class="item wf-rev" data-slot-item>
+          <span class="dot" aria-hidden="true"></span>
+          <div class="item__content">
+            <p class="item__year" data-field="date">{m.year}</p>
+            <h3 class="item__title" data-field="titre">{m.title}</h3>
+            <p class="item__desc" data-field="texte">{m.text}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+
+  </div>
+</section>
+
+<style>
+  .ti-story-timeline {
+    --maxw: min(1020px, var(--container));
+    --ease: cubic-bezier(.16,1,.3,1);
+    --easeBack: cubic-bezier(.34,1.56,.64,1);
+    color: var(--fg);
+  }
+  .tl__inner { width: 100%; max-width: var(--maxw); margin: 0 auto; padding-inline: var(--gutter); }
+  .tl__head { max-width: 42rem; margin-bottom: clamp(3rem, 6vw, 5rem); }
+
+  .timeline { position: relative; padding-left: 2.2rem; list-style: none; margin: 0; }
+  .timeline::before {                  /* base line, always visible (mobile: on the left) */
+    content: ""; position: absolute; left: .45rem; top: .5rem; bottom: .5rem;
+    width: 1px; background: var(--line);
+  }
+  /* progress line traced on scroll, brand gradient pink → cyan */
+  .timeline__fill {
+    position: absolute; left: .45rem; top: .5rem; bottom: .5rem;
+    width: 2px; margin-left: -1px;
+    background: linear-gradient(180deg, var(--accent), var(--accent-2));
+    transform: scaleY(0); transform-origin: top; z-index: 0; pointer-events: none;
+  }
+  /* accent cursor riding down the line */
+  .timeline__dot {
+    position: absolute; left: .45rem; top: .5rem; width: .7rem; height: .7rem;
+    margin-left: -.35rem; margin-top: -.35rem; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 0 4px var(--bg);
+    z-index: 1; pointer-events: none; opacity: 0; transition: opacity .4s var(--ease);
+  }
+  :global(.wf-js) .timeline.is-tracking .timeline__dot { opacity: 1; }
+
+  .item { position: relative; padding: 0 0 clamp(2rem, 4vw, 3rem) 0; }
+  .item:last-child { padding-bottom: 0; }
+  .dot {                               /* milestone marker on the line */
+    position: absolute; left: -2.2rem; top: .4rem;
+    width: .9rem; height: .9rem; border-radius: 50%;
+    background: var(--bg); border: 2px solid var(--fg);
+    box-shadow: 0 0 0 4px var(--bg); z-index: 2;
+    transition: background .5s var(--ease), border-color .5s var(--ease), box-shadow .5s var(--ease);
+  }
+  /* active milestone: solid accent marker */
+  .item.is-active .dot {
+    background: var(--accent); border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--bg), 0 0 0 7px color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+
+  /* dramatic cascading reveal on scroll (hidden state only under .wf-js) */
+  :global(.wf-js) .item.wf-rev {
+    opacity: 0; transform: translateY(34px) scale(.97);
+    transition: opacity .7s var(--ease), transform .8s var(--easeBack);
+  }
+  :global(.wf-js) .item.wf-rev.is-in { opacity: 1; transform: none; }
+  /* mirrored exit towards the TOP */
+  :global(.wf-js) .item.wf-rev.wf-exit-up { opacity: 0; transform: translateY(-34px) scale(.97); }
+
+  .item__year {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .82rem; font-weight: 600; color: var(--accent-2);
+    letter-spacing: .1em; margin-bottom: .55rem;
+  }
+  .item__title { font-size: 1.2rem; font-weight: 600; letter-spacing: -.01em; margin-bottom: .4rem; }
+  .item__desc { color: var(--muted); font-size: .98rem; line-height: 1.6; max-width: 34rem; }
+
+  /* desktop: centered line + alternating items */
+  @media (min-width: 900px) {
+    .timeline { padding-left: 0; }
+    .timeline::before { left: 50%; transform: translateX(-50%); }
+    .timeline__fill { left: 50%; }
+    .timeline__dot { left: 50%; }
+    .item { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; padding-bottom: clamp(3rem, 5vw, 4.5rem); }
+    .item__content { padding-right: 2.5rem; text-align: right; }
+    .item:nth-child(even) .item__content { grid-column: 2; text-align: left; padding-right: 0; padding-left: 2.5rem; }
+    .dot { left: 50%; transform: translate(-50%, 0); top: .3rem; }
+    .item.is-active .dot { transform: translate(-50%, 0); }
+  }
+
+  .tl__eyebrow {
+    display: block; font-size: .78rem; font-weight: 600;
+    letter-spacing: .18em; text-transform: uppercase; color: var(--accent);
+    margin-bottom: 1.1rem;
+  }
+  .tl__title { font-size: clamp(2rem, 4.6vw, 3.2rem); font-weight: 800; line-height: 1.08; letter-spacing: -.02em; margin-bottom: 1rem; }
+  .tl__sub { font-size: 1.05rem; line-height: 1.65; color: var(--muted); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+    :global(.wf-js) .item.wf-rev,
+    :global(.wf-js) .item.wf-rev.wf-exit-up { opacity: 1 !important; transform: none !important; }
+    .timeline__fill { transform: scaleY(1) !important; }   /* full line right away */
+    .timeline__dot { display: none; }                      /* no animated cursor */
+  }
+</style>
+
+<script>
+  document.documentElement.classList.add("wf-js");
+  (() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+    const noIO = !("IntersectionObserver" in window);
+
+    document.querySelectorAll<HTMLElement>(".ti-story-timeline").forEach((root) => {
+      const tl = root.querySelector<HTMLElement>(".timeline");
+      if (!tl) return;
+      const fill = tl.querySelector<HTMLElement>(".timeline__fill");
+      const dot = tl.querySelector<HTMLElement>(".timeline__dot");
+      const items = Array.from(tl.querySelectorAll<HTMLElement>(".item"));
+
+      if (reduce || noIO) {
+        items.forEach((s) => s.classList.add("is-in"));
+        if (fill) fill.style.transform = "scaleY(1)";
+        return;
+      }
+
+      /* 1. Cascading reveal */
+      const revIO = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          const el = e.target as HTMLElement;
+          if (e.isIntersecting) {
+            const i = items.indexOf(el);
+            el.style.transitionDelay = Math.min(i, 6) * 0.08 + "s";
+            el.classList.add("is-in");
+            el.classList.remove("wf-exit-up");
+          } else {
+            el.classList.remove("is-in");
+            el.classList.toggle("wf-exit-up", e.boundingClientRect.top < 0);
+          }
+        });
+      }, { threshold: 0.2, rootMargin: "0px 0px -8% 0px" });
+      items.forEach((s) => revIO.observe(s));
+
+      /* 2. Active milestone (bidirectional) */
+      const actIO = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          e.target.classList.toggle("is-active", e.isIntersecting);
+        });
+      }, { rootMargin: "-45% 0px -45% 0px", threshold: 0 });
+      items.forEach((s) => actIO.observe(s));
+
+      /* 3. Progress line traced on scroll + cursor */
+      let ticking = false;
+      const update = () => {
+        ticking = false;
+        if (!fill) return;
+        const r = tl.getBoundingClientRect();
+        const vh = window.innerHeight || document.documentElement.clientHeight;
+        let p = (vh * 0.5 - r.top) / r.height;
+        p = Math.max(0, Math.min(1, p));
+        fill.style.transform = "scaleY(" + p + ")";
+        if (dot) {
+          const top = fill.offsetTop, h = fill.offsetHeight;
+          dot.style.top = top + p * h + "px";
+        }
+        tl.classList.toggle("is-tracking", p > 0 && p < 1);
+      };
+      const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(update); } };
+      addEventListener("scroll", onScroll, { passive: true });
+      addEventListener("resize", onScroll, { passive: true });
+      update();
+    });
+  })();
+</script>

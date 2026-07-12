@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- lib:meta -->
+<meta name="lib:id" content="heros_hero-text-mask">
+<meta name="lib:groupe" content="01-header">
+<meta name="lib:categorie" content="heros">
+<meta name="lib:intention" content="ouverture-captation">
+<meta name="lib:placement" content="section">
+<meta name="lib:niveau" content="3">
+<meta name="lib:titre" content="Zoom du texte vers image plein écran">
+<meta name="lib:tags" content="GSAP, typo, scroll">
+<meta name="lib:utilite" content="Le texte (fenêtre sur l'image) zoome au scroll jusqu'à l'image plein écran. GSAP ScrollTrigger.">
+<meta name="lib:showcase" content="non">
+<meta name="lib:secteurs" content="polyvalent">
+<meta name="lib:slots" content="titre:titre:court; visuel:media:1">
+<meta name="lib:anatomie" content="base:1 surtitre, 1 mot-masque (titre), 1 indice de scroll, 1 image de fond, plus une section suivante (1 titre H2, 2 paragraphes, 1 bouton); surtitre:H1 servant de surtitre catégorie, majuscules, gris discret; titre:mot court dans un masque SVG (text) qui perce un calque couleur recouvrant l image, gros poids 800; visuel:1 image de fond plein écran révélée à travers le trou du texte (placeholder 1920x1080); indice:libellé Faites défiler avec flèche; cta:1 bouton plein (.btn) dans la section qui suit, fond clair texte sombre; animation:au scroll le trou texte zoome depuis le centre du viewBox (scale 26) jusqu à révéler l image plein écran, calque effacé en fin de course, surtitre et indice disparaissent en fondu; mecanique:GSAP ScrollTrigger pin sur zone de 280vh avec scrub réversible (le trou se referme en remontant); hover:aucun effet de survol notable; responsive:padding de la section suivante réduit sous 768px, taille du mot du masque FLUIDE (clamp(30px,9vw,170px) en unités viewBox, sans paliers → pas de saut) car le viewBox 2:1 scale enormement en portrait; reduced-motion:zoom désactivé, hero statique 100dvh sans pin">
+<!-- /lib:meta -->
+<title>Zoom du texte vers image plein écran</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;800&display=swap" rel="stylesheet">
+
+<!-- ==========================================================================
+     DÉPENDANCES CDN — requises pour l'effet (chargées en fin de body)
+       · GSAP 3 + ScrollTrigger → pin + scrub réversible
+     ==========================================================================
+     STYLE — Hero 06 · L'image est le FOND réel. Un calque couleur la couvre,
+     percé d'un TROU en forme de texte (vrai masque SVG). Au scroll le trou
+     s'agrandit jusqu'à révéler l'image plein écran ; en remontant il se
+     referme exactement à l'identique (effet 100% réversible).
+     Re-skin rapide : modifie uniquement le bloc :root (section 1).
+     ⚠ --reveal-image = l'image de fond révélée par le texte.
+     ========================================================================== -->
+<style>
+  /* --- 1. TOKENS ---------------------------------------------------------- */
+  :root{
+    --bg:#0c0c0e;
+    --fg:#f4f4f5;
+    --muted:#8c8c95;
+    --font:"Outfit",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --reveal-image:url("https://placehold.co/1920x1080");
+  }
+
+  /* --- 2. RESET ----------------------------------------------------------- */
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg)}
+
+  /* --- 3. LAYOUT (mécanique pin + masque) -------------------------------- */
+  .zoom{position:relative;height:280vh;background:var(--bg)}  /* longueur de scroll */
+  .hero{
+    position:relative;height:100dvh;overflow:hidden;
+    background:var(--bg);color:var(--fg);font-family:var(--font);
+  }
+  /* image de fond RÉELLE, visible à travers le trou du texte */
+  .hero__img{
+    position:absolute;inset:0;z-index:0;
+    background:var(--reveal-image) center/cover no-repeat;
+  }
+  /* calque couleur qui recouvre l'image, percé par le masque SVG */
+  .hero__mask{position:absolute;inset:0;z-index:1;width:100%;height:100%;
+    display:block}
+  .hero__mask .cover{fill:var(--bg)}            /* couleur du calque = --bg */
+  .hero__mask text{
+    font-family:var(--font);font-weight:800;
+    /* taille FLUIDE (unités du viewBox) : continue, sans paliers → pas de saut.
+       Remplace l'attribut font-size=170 ; suit la largeur d'écran. */
+    font-size:clamp(30px,9vw,170px);
+    /* le centre du zoom est fixé en JS via GSAP svgOrigin (coords viewBox),
+       seule méthode fiable pour scaler un <text> SVG depuis son centre */
+  }
+  /* textes secondaires par-dessus le calque */
+  .hero__inner{position:absolute;z-index:2;left:0;right:0;bottom:9vh;
+    padding:0 6vw;text-align:center;pointer-events:none}
+  .hero__inner a{pointer-events:auto}
+
+  /* --- 4. TYPOGRAPHIE ----------------------------------------------------- */
+  .hero__eyebrow{font-size:.82rem;font-weight:500;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--muted)}
+  .hero__cue{margin-top:1rem;font-size:.8rem;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--muted)}
+
+  /* contenu qui suit, une fois l'image plein écran */
+  .after{position:relative;z-index:2;background:var(--bg);color:var(--fg);
+    font-family:var(--font);padding:7rem 6vw}
+  .after__wrap{max-width:60ch;margin:0 auto}
+  .after h2{font-size:clamp(1.7rem,3vw,2.3rem);font-weight:800;
+    letter-spacing:-.02em;margin-bottom:1.2rem}
+  .after p{color:var(--muted);line-height:1.7;margin-bottom:1.4rem}
+
+  /* --- 5. ACCENT / lien --------------------------------------------------- */
+  .btn{display:inline-block;font:inherit;font-weight:500;font-size:.98rem;
+    padding:.85rem 1.7rem;border-radius:.55rem;text-decoration:none;
+    background:var(--fg);color:#0c0c0e;
+    transition:transform .25s cubic-bezier(.16,1,.3,1)}
+  .btn:active{transform:translateY(1px)}
+
+  /* --- 6. RESPONSIVE ------------------------------------------------------ */
+  /* La taille du mot du masque est fluide (clamp+vw, cf. .hero__mask text). */
+  @media (max-width:768px){
+    .after{padding:5rem 1.4rem}
+    .hero__inner{bottom:7vh}
+  }
+
+  /* --- 7. ACCESSIBILITÉ : pas de zoom si mouvement réduit ---------------
+     Hero statique : le texte reste un masque, à taille lisible. */
+  @media (prefers-reduced-motion:reduce){
+    .zoom{height:auto}
+    .hero{height:100dvh}
+  }
+
+  /* --- Animation d'entrée au chargement -------------------------------
+     GSAP fade les enfants [data-fade] (.hero__eyebrow / .hero__cue) au
+     scroll : on anime donc leur parent neutre .hero__inner en entrée
+     unique. .after h2/.after p (section suivante) ne sont jamais touchés
+     par GSAP → cascade libre. */
+  @keyframes heroIn{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:translateY(0)}}
+  .hero__inner{animation:heroIn .8s cubic-bezier(.16,1,.3,1) .06s backwards}
+  .after h2{animation:heroIn .8s cubic-bezier(.16,1,.3,1) .06s backwards}
+  .after p{animation:heroIn .8s cubic-bezier(.16,1,.3,1) .18s backwards}
+  @media (prefers-reduced-motion:reduce){.hero__inner,.after h2,.after p{animation:none}}
+</style>
+</head>
+<body>
+
+<!-- ==========================================================================
+     STRUCTURE — contenu à personnaliser
+       Le mot du masque se change dans <text id="maskText">…</text>
+       (idéalement un mot court : le zoom "entre" dans l'image).
+     ========================================================================== -->
+<div class="zoom" id="zoom">
+  <section class="hero" id="pin">
+
+    <!-- NOTE visuel : image revelee a travers le masque, posee en background CSS
+         (.hero__img). Injection avancee = variable --img (pas <img> src/alt). -->
+    <div class="hero__img" aria-hidden="true" data-slot="visuel"></div>
+
+    <!-- calque couleur + trou en forme de texte (vrai masque SVG) -->
+    <svg class="hero__mask" viewBox="0 0 1200 600"
+         preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <mask id="hero06mask">
+          <rect width="1200" height="600" fill="#fff"/>
+          <!-- titre = mot du masque (SVG). data-keep : GSAP agrandit ce <text>. -->
+          <text id="maskText" x="600" y="300" text-anchor="middle" data-slot="titre" data-keep
+                dominant-baseline="central" font-size="170" fill="#000">AILLEURS</text>
+        </mask>
+      </defs>
+      <rect class="cover" width="1200" height="600" mask="url(#hero06mask)"/>
+    </svg>
+
+    <div class="hero__inner">
+      <h1 class="hero__eyebrow" data-fade>Surtitre · catégorie — informations secondaires</h1>
+      <p class="hero__cue" data-fade>Faites défiler &darr;</p>
+    </div>
+
+  </section>
+</div>
+
+<section class="after">
+  <div class="after__wrap">
+    <h2>Titre de la section suivante</h2>
+    <p>
+      Une fois l'image en plein écran, le contenu du site commence ici.
+      Bloc à remplacer par la suite réelle de la page.
+    </p>
+    <p><a class="btn" href="#">En savoir plus</a></p>
+  </div>
+</section>
+
+<!-- ==========================================================================
+     SCRIPT — pin + scrub : on agrandit le TROU (le <text> du masque).
+     scrub:true → entièrement réversible, le trou se referme au retour.
+     ========================================================================== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>
+  (function () {
+    var rm = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    if (rm || !window.gsap || !window.ScrollTrigger) return;   // hero statique
+
+    gsap.registerPlugin(ScrollTrigger);
+
+    var tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: '#zoom',
+        start: 'top top',
+        end: 'bottom bottom',
+        scrub: true,
+        pin: '#pin',
+        anticipatePin: 1
+      }
+    });
+
+    // le trou (texte du masque) grossit DEPUIS LE CENTRE du viewBox (600,300)
+    // → l'image se dévoile en plein écran, pas depuis le haut
+    tl.to('#maskText',  { scale: 26, svgOrigin: '600 300', ease: 'none', duration: 1 }, 0)
+      .to('[data-fade]', { opacity: 0, ease: 'none', duration: 0.2 }, 0)
+      // sécurité : calque totalement effacé en fin de course = image nette
+      .to('.hero__mask', { opacity: 0, ease: 'none', duration: 0.12 }, 0.88);
+  })();
+</script>
+
+</body>
+</html>

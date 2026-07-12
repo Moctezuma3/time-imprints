@@ -1,0 +1,263 @@
+---
+/**
+ * Integration — section `navbars_nav-sticky-simple` (placement: header slot).
+ * Phase 2 rules applied:
+ *   1. Local :root tokens + reset + Google-Fonts removed → base tokens inherited.
+ *   2. Hard-coded colors → tokens (--bg/--fg/--muted/--line/--accent/--accent-2,
+ *      translucent header via color-mix, shadow via --shadow-color).
+ *   3. Root element = <header> (goes in the Layout "header" slot, not <main>).
+ *   4. Brand = logo image + two-tone wordmark (TIME cyan / IMPRINTS pink).
+ *   5. CTA reuses the global .btn/.btn--primary classes + scoped ink-fill disc.
+ *   6. JS scoped to `.ti-nav` (querySelectorAll + forEach — safe with 0..n
+ *      instances, no ids shared between instances).
+ */
+import { NAV } from "../../data/site";
+
+export interface Props {
+  /** Pathname of the current page (e.g. Astro.url.pathname) — sets aria-current on the matching link. */
+  currentPath?: string;
+}
+const { currentPath } = Astro.props;
+
+const norm = (p: string) => (p.endsWith("/") ? p : p + "/");
+const isActive = (href: string): boolean => {
+  if (!currentPath) return false;
+  const cur = norm(currentPath);
+  const h = norm(href);
+  return h === "/" ? cur === "/" : cur === h || cur.startsWith(h);
+};
+---
+
+<header class="ti-nav">
+  <div class="inner">
+    <a class="brand" href="/" aria-label="Time Imprints — home">
+      <img class="brand__logo" src="/img/logo.jpg" alt="" width="40" height="40" loading="eager" />
+      <span class="brand__word">
+        <span class="brand__time">TIME</span>
+        <span class="brand__imprints">IMPRINTS</span>
+      </span>
+    </a>
+
+    <nav class="nav" aria-label="Main navigation">
+      <span class="nav__pill" aria-hidden="true"></span>
+      {NAV.map((l) => (
+        <a href={l.href} aria-current={isActive(l.href) ? "page" : undefined}>{l.label}</a>
+      ))}
+    </nav>
+
+    <div class="actions">
+      <button class="btn btn--primary nav-cta cart-btn" type="button" data-cart-open aria-label="Open cart">
+        <svg class="cart-btn__ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12l-1 12H7L6 7zM9 7a3 3 0 016 0" /></svg>
+        <span>Cart</span>
+        <span class="cart-btn__count" data-cart-count data-empty>0</span>
+      </button>
+      <button class="burger" type="button" aria-label="Open menu" aria-expanded="false"><span></span></button>
+    </div>
+  </div>
+
+  <div class="panel">
+    {NAV.map((l) => (
+      <a href={l.href} aria-current={isActive(l.href) ? "page" : undefined}>{l.label}</a>
+    ))}
+    <button class="btn btn--primary nav-cta cart-btn" type="button" data-cart-open aria-label="Open cart">
+      <svg class="cart-btn__ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12l-1 12H7L6 7zM9 7a3 3 0 016 0" /></svg>
+      <span>View cart</span>
+      <span class="cart-btn__count" data-cart-count data-empty>0</span>
+    </button>
+  </div>
+</header>
+
+<style>
+  .ti-nav {
+    --ease: cubic-bezier(.16, 1, .3, 1);
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--bg) 86%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid transparent;
+    transition: box-shadow .3s var(--ease), border-color .3s;
+  }
+  .ti-nav.is-scrolled { border-color: var(--line); box-shadow: 0 10px 30px -20px var(--shadow-color); }
+  .ti-nav a { text-decoration: none; color: inherit; }
+
+  .inner {
+    max-width: var(--container); margin: 0 auto; padding: 0 var(--gutter);
+    height: 4.4rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  }
+
+  /* Brand — logo + two-tone wordmark */
+  .brand { display: flex; align-items: center; gap: .65rem; flex: none; }
+  .brand__logo { width: 40px; height: 40px; border-radius: 25%; object-fit: cover; border: 1px solid var(--line); }
+  .brand__word { font-size: 1.06rem; font-weight: 900; letter-spacing: .02em; white-space: nowrap; }
+  .brand__time { color: var(--accent-2); }
+  .brand__imprints { color: var(--accent); }
+
+  /* Nav links + sliding highlight pill */
+  .nav { position: relative; display: flex; align-items: center; gap: .2rem; }
+  .nav a { font-size: .95rem; font-weight: 500; color: var(--muted); position: relative; z-index: 1;
+    padding: .5rem .9rem; border-radius: .55rem; transition: color .25s; }
+  .nav a:hover { color: var(--fg); }
+  .nav a[aria-current="page"] { color: var(--fg); font-weight: 700; }
+  .nav a[aria-current="page"]::after {
+    content: ""; position: absolute; left: .9rem; right: .9rem; bottom: .22rem; height: 2px; border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  }
+  .nav__pill {
+    position: absolute; top: 0; left: 0; width: 0; height: 0;
+    background: color-mix(in srgb, var(--fg) 9%, transparent);
+    border-radius: .55rem; opacity: 0; pointer-events: none; z-index: 0;
+    transition: transform .32s var(--ease), width .32s var(--ease), height .32s var(--ease), opacity .2s;
+  }
+  .nav__pill.show { opacity: 1; }
+
+  .actions { display: flex; align-items: center; gap: .9rem; }
+  .nav-cta { font-size: .92rem; white-space: nowrap; }
+
+  /* Cart button: bag icon + label + live count badge */
+  .cart-btn { display: inline-flex; align-items: center; gap: .5rem; }
+  .cart-btn__ico { width: 1.15rem; height: 1.15rem; flex: none;
+    fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .cart-btn__count {
+    display: inline-grid; place-items: center; min-width: 1.35rem; height: 1.35rem; padding: 0 .35rem;
+    font-size: .78rem; font-weight: 800; line-height: 1; border-radius: 999px;
+    background: var(--accent-contrast); color: var(--accent);
+    transition: transform .25s cubic-bezier(.34,1.56,.64,1);
+  }
+  .cart-btn__count[data-empty] { display: none; }
+  .cart-btn:hover .cart-btn__count { transform: scale(1.08); }
+
+  /* CTA — ink disc growing from the exact cursor point (fine pointer only) */
+  @media (hover: hover) and (pointer: fine) {
+    .nav-cta { position: relative; isolation: isolate; overflow: hidden;
+      transition: transform .2s var(--ease), color .35s var(--ease); }
+    .nav-cta::before {
+      content: ""; position: absolute; z-index: -1; top: var(--y, 50%); left: var(--x, 50%);
+      width: 0; height: 0; border-radius: 50%; background: var(--accent-2);
+      transform: translate(-50%, -50%); transition: width .5s var(--ease), height .5s var(--ease);
+    }
+    .nav-cta:hover { transform: translateY(-2px); color: var(--bg); }
+    .nav-cta:hover::before { width: 340px; height: 340px; }
+  }
+
+  /* Hamburger */
+  .burger { display: none; width: 2.6rem; height: 2.6rem; border: 1px solid var(--line);
+    border-radius: .55rem; background: none; cursor: pointer; position: relative; flex: none; }
+  .burger span, .burger span::before, .burger span::after {
+    content: ""; position: absolute; left: 50%; top: 50%;
+    width: 1.1rem; height: 2px; background: var(--fg); border-radius: 2px; transform: translate(-50%, -50%);
+    transition: transform .3s var(--ease), opacity .2s;
+  }
+  .burger span::before { transform: translate(-50%, -.35rem); }
+  .burger span::after { transform: translate(-50%, .35rem); }
+  .burger[aria-expanded="true"] span { background: transparent; }
+  .burger[aria-expanded="true"] span::before { transform: translate(-50%, -50%) rotate(45deg); }
+  .burger[aria-expanded="true"] span::after { transform: translate(-50%, -50%) rotate(-45deg); }
+
+  .panel { display: none; }
+
+  @media (max-width: 820px) {
+    .nav { display: none; }
+    .burger { display: block; }
+    /* Keep the cart reachable in the top bar; collapse it to icon + count. */
+    .actions .cart-btn { padding: .55rem .7rem; }
+    .actions .cart-btn > span:not(.cart-btn__count) { display: none; }
+    .panel {
+      display: block; position: absolute; top: 100%; left: 0; right: 0;
+      background: var(--bg); border-bottom: 1px solid var(--line);
+      box-shadow: 0 18px 40px -22px var(--shadow-color);
+      padding: .8rem var(--gutter) 1.2rem;
+      opacity: 0; transform: translateY(-8px); pointer-events: none;
+      transition: opacity .28s var(--ease), transform .28s var(--ease);
+    }
+    .panel.is-open { opacity: 1; transform: none; pointer-events: auto; }
+    /* Link cascade on open */
+    .panel a { opacity: 0; transform: translateY(-6px); transition: opacity .3s var(--ease), transform .3s var(--ease); }
+    .panel.is-open a { opacity: 1; transform: none; }
+    .panel.is-open a:nth-child(1) { transition-delay: .06s; }
+    .panel.is-open a:nth-child(2) { transition-delay: .11s; }
+    .panel.is-open a:nth-child(3) { transition-delay: .16s; }
+    .panel.is-open a:nth-child(4) { transition-delay: .21s; }
+    .panel.is-open a:nth-child(5) { transition-delay: .26s; }
+    .panel.is-open a:nth-child(6) { transition-delay: .31s; }
+    .panel a:not(.nav-cta) { display: block; padding: .8rem .2rem; font-size: 1rem; font-weight: 500;
+      color: var(--fg); border-bottom: 1px solid var(--line); }
+    .panel a[aria-current="page"] { color: var(--accent-2); font-weight: 700; }
+    .panel .nav-cta { width: 100%; margin-top: .9rem; padding: .85rem; }
+  }
+
+  /* Entrance on load */
+  @keyframes navIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+  .brand { animation: navIn .6s var(--ease) .05s backwards; }
+  .nav a { animation: navIn .6s var(--ease) backwards; }
+  .nav a:nth-of-type(1) { animation-delay: .12s; }
+  .nav a:nth-of-type(2) { animation-delay: .18s; }
+  .nav a:nth-of-type(3) { animation-delay: .24s; }
+  .nav a:nth-of-type(4) { animation-delay: .30s; }
+  .nav a:nth-of-type(5) { animation-delay: .36s; }
+  .actions { animation: navIn .6s var(--ease) .42s backwards; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ti-nav, .nav-cta, .nav-cta::before, .panel, .panel a, .nav__pill,
+    .burger span, .burger span::before, .burger span::after { transition: none; }
+    .brand, .nav a, .actions { animation: none; }
+  }
+</style>
+
+<script>
+  (function () {
+    const fine = window.matchMedia("(hover:hover) and (pointer:fine)").matches;
+
+    document.querySelectorAll<HTMLElement>(".ti-nav").forEach((header, idx) => {
+      const nav = header.querySelector<HTMLElement>(".nav");
+      const pill = header.querySelector<HTMLElement>(".nav__pill");
+      const burger = header.querySelector<HTMLButtonElement>(".burger");
+      const panel = header.querySelector<HTMLElement>(".panel");
+
+      /* Sliding pill under the hovered link (offsets relative to .nav) */
+      if (nav && pill && fine) {
+        nav.querySelectorAll<HTMLAnchorElement>("a").forEach((a) => {
+          a.addEventListener("mouseenter", () => {
+            pill.style.transform = "translate(" + a.offsetLeft + "px," + a.offsetTop + "px)";
+            pill.style.width = a.offsetWidth + "px";
+            pill.style.height = a.offsetHeight + "px";
+            pill.classList.add("show");
+          });
+        });
+        nav.addEventListener("mouseleave", () => pill.classList.remove("show"));
+      }
+
+      /* CTA — ink disc origin at the exact cursor point */
+      if (fine) {
+        header.querySelectorAll<HTMLElement>(".nav-cta").forEach((btn) => {
+          const origin = (e: MouseEvent) => {
+            const r = btn.getBoundingClientRect();
+            btn.style.setProperty("--x", e.clientX - r.left + "px");
+            btn.style.setProperty("--y", e.clientY - r.top + "px");
+          };
+          btn.addEventListener("mouseenter", origin);
+          btn.addEventListener("mousemove", origin);
+        });
+      }
+
+      /* Shadow on scroll */
+      const onScroll = () => header.classList.toggle("is-scrolled", window.scrollY > 4);
+      onScroll();
+      window.addEventListener("scroll", onScroll, { passive: true });
+
+      /* Hamburger (accessible: Escape, outside click, close on link click) */
+      if (burger && panel) {
+        if (!panel.id) panel.id = "ti-nav-panel-" + idx;
+        burger.setAttribute("aria-controls", panel.id);
+        const setOpen = (open: boolean) => {
+          burger.setAttribute("aria-expanded", String(open));
+          burger.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+          panel.classList.toggle("is-open", open);
+        };
+        burger.addEventListener("click", () => setOpen(burger.getAttribute("aria-expanded") !== "true"));
+        document.addEventListener("keydown", (e) => { if (e.key === "Escape") setOpen(false); });
+        document.addEventListener("click", (e) => { if (!header.contains(e.target as Node)) setOpen(false); });
+        panel.addEventListener("click", (e) => { if ((e.target as HTMLElement).closest("a")) setOpen(false); });
+      }
+    });
+  })();
+</script>

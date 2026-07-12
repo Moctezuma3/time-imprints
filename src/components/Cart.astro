@@ -1,0 +1,276 @@
+---
+/**
+ * Cart.astro — client-side shopping cart for the static site.
+ * Renders the slide-in drawer + overlay and defines the global `window.TICart`
+ * engine (localStorage-backed). Placed once in every page's header slot,
+ * right after the navbar. All "Add to cart" / "Buy now" / cart-open controls
+ * anywhere on the page work through data-attributes handled here by delegation:
+ *   [data-add-to-cart] data-slug data-name data-price data-image [data-size]
+ *   [data-buy-now]     (same attributes; adds then goes to /checkout/)
+ *   [data-cart-open]   opens the drawer   ·   [data-cart-count] shows the count
+ * Product pages with size/qty controls call window.TICart.add(item, qty) directly.
+ */
+---
+
+<div class="ti-cart" data-cart-root aria-hidden="true">
+  <div class="ti-cart__overlay" data-cart-close></div>
+
+  <aside class="ti-cart__drawer" role="dialog" aria-modal="true" aria-label="Your cart" tabindex="-1">
+    <header class="ti-cart__head">
+      <h2 class="ti-cart__title">Your cart <span class="ti-cart__badge" data-cart-count>0</span></h2>
+      <button class="ti-cart__close" type="button" data-cart-close aria-label="Close cart">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
+    </header>
+
+    <div class="ti-cart__scroll">
+      <div class="ti-cart__empty" data-cart-empty>
+        <div class="ti-cart__empty-glyph" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M6 7h12l-1 13H7L6 7zM9 7a3 3 0 016 0" /></svg>
+        </div>
+        <p>Your cart is empty.</p>
+        <a class="btn btn--primary" href="/kits/" data-cart-close>Browse the kits</a>
+      </div>
+      <ul class="ti-cart__items" data-cart-items></ul>
+    </div>
+
+    <footer class="ti-cart__foot" data-cart-foot hidden>
+      <div class="ti-cart__line">
+        <span>Subtotal</span>
+        <strong data-cart-total>€0</strong>
+      </div>
+      <p class="ti-cart__ship">Free worldwide shipping · every box hides a scratch-card discount 🎁</p>
+      <a class="btn btn--primary ti-cart__checkout" href="/checkout/">Checkout</a>
+      <button class="btn btn--ghost ti-cart__continue" type="button" data-cart-close>Continue shopping</button>
+    </footer>
+  </aside>
+</div>
+
+<template data-cart-item-template>
+  <li class="ti-cart__item" data-key="">
+    <a class="ti-cart__thumb" href="#"><img src="" alt="" /></a>
+    <div class="ti-cart__meta">
+      <a class="ti-cart__name" href="#"></a>
+      <p class="ti-cart__opt" data-opt hidden></p>
+      <div class="ti-cart__qty" role="group" aria-label="Quantity">
+        <button type="button" data-cart-dec aria-label="Decrease quantity">−</button>
+        <span data-qty>1</span>
+        <button type="button" data-cart-inc aria-label="Increase quantity">+</button>
+      </div>
+    </div>
+    <div class="ti-cart__side">
+      <span class="ti-cart__price" data-line-price>€0</span>
+      <button class="ti-cart__remove" type="button" data-cart-remove>Remove</button>
+    </div>
+  </li>
+</template>
+
+<style>
+  .ti-cart { position: fixed; inset: 0; z-index: 200; pointer-events: none; }
+  .ti-cart[aria-hidden="false"] { pointer-events: auto; }
+
+  .ti-cart__overlay {
+    position: absolute; inset: 0; background: color-mix(in srgb, #000 62%, transparent);
+    opacity: 0; transition: opacity .32s cubic-bezier(.16,1,.3,1);
+  }
+  .ti-cart[aria-hidden="false"] .ti-cart__overlay { opacity: 1; }
+
+  .ti-cart__drawer {
+    position: absolute; top: 0; right: 0; height: 100%;
+    width: min(30rem, 100%); display: flex; flex-direction: column;
+    background: var(--bg); border-left: 1px solid var(--line);
+    box-shadow: -30px 0 60px -30px var(--shadow-color);
+    transform: translateX(100%); transition: transform .38s cubic-bezier(.16,1,.3,1);
+    text-align: left;
+  }
+  .ti-cart[aria-hidden="false"] .ti-cart__drawer { transform: none; }
+
+  .ti-cart__head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.2rem 1.4rem; border-bottom: 1px solid var(--line); flex: none;
+  }
+  .ti-cart__title { font-size: 1.15rem; font-weight: 800; letter-spacing: -.01em; display: flex; align-items: center; gap: .55rem; }
+  .ti-cart__badge {
+    display: inline-grid; place-items: center; min-width: 1.5rem; height: 1.5rem; padding: 0 .4rem;
+    font-size: .8rem; font-weight: 700; border-radius: 999px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2)); color: var(--accent-contrast);
+  }
+  .ti-cart__close {
+    width: 2.4rem; height: 2.4rem; display: grid; place-items: center; cursor: pointer;
+    border: 1px solid var(--line); border-radius: .6rem; background: var(--surface); color: var(--fg);
+    transition: border-color .2s, background .2s;
+  }
+  .ti-cart__close svg { width: 1.1rem; height: 1.1rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+  .ti-cart__close:hover { border-color: var(--accent); }
+
+  .ti-cart__scroll { flex: 1; overflow-y: auto; padding: 1rem 1.4rem; }
+
+  .ti-cart__empty { display: none; flex-direction: column; align-items: center; gap: 1rem; text-align: center; padding: 3rem 1rem; color: var(--muted); }
+  .ti-cart[data-empty="true"] .ti-cart__empty { display: flex; }
+  .ti-cart__empty-glyph { width: 4rem; height: 4rem; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); }
+  .ti-cart__empty-glyph svg { width: 1.9rem; height: 1.9rem; fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+
+  .ti-cart__items { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 1rem; }
+  .ti-cart[data-empty="true"] .ti-cart__items { display: none; }
+
+  .ti-cart__item { display: grid; grid-template-columns: 4.6rem 1fr auto; gap: .9rem; align-items: start; }
+  .ti-cart__thumb { display: block; width: 4.6rem; height: 4.6rem; border-radius: calc(var(--radius) * .55); overflow: hidden; border: 1px solid var(--line); background: var(--surface); }
+  .ti-cart__thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .ti-cart__name { font-weight: 700; font-size: .95rem; line-height: 1.25; color: var(--fg); text-decoration: none; }
+  .ti-cart__name:hover { color: var(--accent); }
+  .ti-cart__opt { color: var(--muted); font-size: .82rem; margin-top: .15rem; }
+
+  .ti-cart__qty { display: inline-flex; align-items: center; gap: .5rem; margin-top: .55rem;
+    border: 1px solid var(--line); border-radius: 999px; padding: .15rem .3rem; }
+  .ti-cart__qty button { width: 1.6rem; height: 1.6rem; border: none; background: none; color: var(--fg);
+    font-size: 1rem; cursor: pointer; border-radius: 50%; line-height: 1; }
+  .ti-cart__qty button:hover { background: color-mix(in srgb, var(--fg) 10%, transparent); }
+  .ti-cart__qty span { min-width: 1.2rem; text-align: center; font-weight: 700; font-size: .9rem; }
+
+  .ti-cart__side { display: flex; flex-direction: column; align-items: flex-end; gap: .5rem; }
+  .ti-cart__price { font-weight: 800; letter-spacing: -.01em; }
+  .ti-cart__remove { background: none; border: none; color: var(--muted); font-size: .8rem; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; padding: 0; }
+  .ti-cart__remove:hover { color: var(--accent); }
+
+  .ti-cart__foot { flex: none; border-top: 1px solid var(--line); padding: 1.2rem 1.4rem calc(1.2rem + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: .55rem; }
+  .ti-cart__foot[hidden] { display: none; }
+  .ti-cart__line { display: flex; align-items: baseline; justify-content: space-between; font-size: 1.05rem; }
+  .ti-cart__line strong { font-size: 1.3rem; font-weight: 800;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .ti-cart__ship { color: var(--muted); font-size: .82rem; }
+  .ti-cart__checkout { width: 100%; margin-top: .35rem; }
+  .ti-cart__continue { width: 100%; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ti-cart__overlay, .ti-cart__drawer { transition: none; }
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    var KEY = "ti-cart-v1";
+    var items = [];
+    try { var raw = JSON.parse(localStorage.getItem(KEY) || "[]"); if (Array.isArray(raw)) items = raw; } catch (e) {}
+
+    function keyOf(it) { return it.slug + "::" + (it.size || ""); }
+    function count() { return items.reduce(function (n, i) { return n + i.qty; }, 0); }
+    function total() { return items.reduce(function (s, i) { return s + i.price * i.qty; }, 0); }
+    function money(n) { return "€" + (Math.round(n * 100) / 100).toLocaleString("en-US"); }
+    function find(k) { for (var i = 0; i < items.length; i++) if (keyOf(items[i]) === k) return items[i]; return null; }
+    function save() { try { localStorage.setItem(KEY, JSON.stringify(items)); } catch (e) {} render(); }
+
+    var api = {
+      items: function () { return items.slice(); },
+      count: count,
+      total: total,
+      add: function (it, qty) {
+        qty = qty || 1;
+        var ex = find(keyOf(it));
+        if (ex) { ex.qty += qty; }
+        else items.push({ slug: it.slug, name: it.name, image: it.image, price: Number(it.price) || 0, size: it.size || "", url: it.url || "", qty: qty });
+        save();
+      },
+      setQty: function (k, q) {
+        var it = find(k); if (!it) return;
+        it.qty = q;
+        if (it.qty <= 0) items = items.filter(function (x) { return keyOf(x) !== k; });
+        save();
+      },
+      remove: function (k) { items = items.filter(function (x) { return keyOf(x) !== k; }); save(); },
+      clear: function () { items = []; save(); },
+      open: openDrawer,
+      close: closeDrawer,
+    };
+    window.TICart = api;
+
+    /* ---- drawer render ---- */
+    var root, itemsEl, tmpl;
+    function render() {
+      var n = count();
+      document.querySelectorAll("[data-cart-count]").forEach(function (el) {
+        el.textContent = String(n);
+        el.toggleAttribute("data-empty", n === 0);
+      });
+      if (!root) return;
+      root.setAttribute("data-empty", items.length === 0 ? "true" : "false");
+      var foot = root.querySelector("[data-cart-foot]");
+      if (foot) foot.hidden = items.length === 0;
+      var totalEl = root.querySelector("[data-cart-total]");
+      if (totalEl) totalEl.textContent = money(total());
+      if (!itemsEl || !tmpl) return;
+      itemsEl.textContent = "";
+      items.forEach(function (it) {
+        var node = tmpl.content.firstElementChild.cloneNode(true);
+        var k = keyOf(it);
+        node.setAttribute("data-key", k);
+        var href = it.url || ("/kits/" + it.slug + "/");
+        node.querySelector(".ti-cart__thumb").setAttribute("href", href);
+        var img = node.querySelector("img");
+        img.src = it.image; img.alt = it.name;
+        var name = node.querySelector(".ti-cart__name");
+        name.textContent = it.name; name.setAttribute("href", href);
+        var opt = node.querySelector("[data-opt]");
+        if (it.size) { opt.textContent = "Size: " + it.size; opt.hidden = false; }
+        node.querySelector("[data-qty]").textContent = String(it.qty);
+        node.querySelector("[data-line-price]").textContent = money(it.price * it.qty);
+        itemsEl.appendChild(node);
+      });
+      try { document.dispatchEvent(new CustomEvent("ti-cart:change", { detail: { count: count(), total: total() } })); } catch (e) {}
+    }
+
+    function openDrawer() {
+      if (!root) return;
+      root.setAttribute("aria-hidden", "false");
+      document.documentElement.style.overflow = "hidden";
+      var d = root.querySelector(".ti-cart__drawer");
+      if (d) d.focus();
+    }
+    function closeDrawer() {
+      if (!root) return;
+      root.setAttribute("aria-hidden", "true");
+      document.documentElement.style.overflow = "";
+    }
+
+    function flash(btn) {
+      if (!btn || btn.dataset.flashing) return;
+      var prev = btn.getAttribute("data-label-original") || btn.textContent;
+      btn.dataset.flashing = "1";
+      btn.dataset.labelOriginal = prev;
+      btn.textContent = "Added ✓";
+      setTimeout(function () { btn.textContent = btn.dataset.labelOriginal; delete btn.dataset.flashing; }, 1100);
+    }
+
+    function itemFrom(el) {
+      return { slug: el.dataset.slug, name: el.dataset.name, image: el.dataset.image, price: el.dataset.price, size: el.dataset.size || "", url: el.dataset.url || "" };
+    }
+
+    /* ---- delegated controls (work anywhere on the page) ---- */
+    document.addEventListener("click", function (e) {
+      var t = e.target;
+      var add = t.closest("[data-add-to-cart]");
+      if (add) { e.preventDefault(); api.add(itemFrom(add), 1); openDrawer(); flash(add); return; }
+      var buy = t.closest("[data-buy-now]");
+      if (buy) { e.preventDefault(); api.add(itemFrom(buy), 1); location.href = "/checkout/"; return; }
+      var open = t.closest("[data-cart-open]");
+      if (open) { e.preventDefault(); openDrawer(); return; }
+      var close = t.closest("[data-cart-close]");
+      if (close) { e.preventDefault(); closeDrawer(); return; }
+      var inc = t.closest("[data-cart-inc]");
+      if (inc) { var ri = inc.closest("[data-key]"); var ii = find(ri.getAttribute("data-key")); if (ii) api.setQty(keyOf(ii), ii.qty + 1); return; }
+      var dec = t.closest("[data-cart-dec]");
+      if (dec) { var rd = dec.closest("[data-key]"); var id = find(rd.getAttribute("data-key")); if (id) api.setQty(keyOf(id), id.qty - 1); return; }
+      var rem = t.closest("[data-cart-remove]");
+      if (rem) { var rr = rem.closest("[data-key]"); if (rr) api.remove(rr.getAttribute("data-key")); return; }
+    });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeDrawer(); });
+
+    function boot() {
+      root = document.querySelector("[data-cart-root]");
+      itemsEl = document.querySelector("[data-cart-items]");
+      tmpl = document.querySelector("[data-cart-item-template]");
+      render();
+    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+    else boot();
+  })();
+</script>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script>document.documentElement.classList.add('wf-js')</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- lib:meta -->
+<meta name="lib:id" content="separateur_divider-wave-svg">
+<meta name="lib:groupe" content="00-elements">
+<meta name="lib:categorie" content="separateur">
+<meta name="lib:intention" content="conversion-footer">
+<meta name="lib:role" content="separateur">
+<meta name="lib:placement" content="divider">
+<meta name="lib:niveau" content="2">
+<meta name="lib:titre" content="Séparateur en vague">
+<meta name="lib:tags" content="CSS pur, SVG, séparateur, animé, scroll-reveal, fadein, IntersectionObserver, sobre">
+<meta name="lib:utilite" content="Séparateur graphique entre deux sections de couleurs différentes : une vague SVG assure une transition fluide d'un fond à l'autre. Purement décoratif. À l'entrée à l'écran, la vague et la section colorée se révèlent en fondu doux (la vague monte de quelques px). Révélation au scroll via IntersectionObserver, sobre et minimale ; sans JS ou en reduced-motion, tout est visible direct.">
+<meta name="lib:showcase" content="non">
+<meta name="lib:secteurs" content="polyvalent">
+<meta name="lib:slots" content="">
+<meta name="lib:anatomie" content="base:separateur en vague SVG pleine largeur entre 2 sections; motif:une vague SVG (hauteur clamp 4rem a 7rem) qui assure une transition fluide entre un fond clair en haut et un fond colore en bas, la vague prend la couleur du fond bas; layout:section claire puis vague puis section coloree, purement decoratif; animation:au scroll la vague et la section coloree se revelent en fondu doux, la vague monte de quelques px; responsive:hauteur reduite a 3.5rem sous 560px, sans JS ou en reduced-motion tout est visible direct">
+<!-- /lib:meta -->
+<title>Séparateur en vague</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- ==========================================================================
+     STYLE — Divider · Vague SVG : transition fluide entre deux fonds. 100 % CSS.
+     Un seul accent (sur le fond bas).
+     ========================================================================== -->
+<style>
+  /* 1. Tokens ------------------------------------------------------------ */
+  :root{
+    --bg:#fbfbfa;--surface:#ffffff;--fg:#16181d;--muted:#5c6270;--line:#e9e9e4;
+    --accent:#3b6ef5;
+    --maxw:72rem;
+    --font:"Outfit",ui-sans-serif,system-ui,-apple-system,sans-serif;
+    --ease:cubic-bezier(.16,1,.3,1);
+  }
+  /* 2. Reset ------------------------------------------------------------- */
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  svg{display:block}
+  img{display:block;max-width:100%}
+  body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6}
+  /* 3. Layout ------------------------------------------------------------ */
+  .top{background:var(--bg);padding:clamp(2.5rem,6vw,4rem) 1.4rem 0;text-align:center}
+  .top__inner{max-width:var(--maxw);margin:0 auto}
+  .wave{display:block;width:100%;height:clamp(4rem,9vw,7rem);background:var(--bg)}
+  .wave svg{width:100%;height:100%}
+  .wave svg path{fill:var(--accent)}
+  .bottom{background:var(--accent);color:#fff;padding:clamp(2.5rem,6vw,4rem) 1.4rem clamp(3rem,7vw,5rem);text-align:center}
+  .bottom__inner{max-width:var(--maxw);margin:0 auto}
+  /* 4. Typographie ------------------------------------------------------- */
+  .eyebrow{font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;font-weight:600}
+  .top .eyebrow{color:var(--accent)} .bottom .eyebrow{color:rgba(255,255,255,.8)}
+  h2{font-size:clamp(1.5rem,3.4vw,2.2rem);font-weight:800;letter-spacing:-.025em;margin-top:.4rem}
+  .top p,.bottom p{margin-top:.6rem}.top p{color:var(--muted)} .bottom p{color:rgba(255,255,255,.85)}
+  /* 5. Accent / hover ---------------------------------------------------- */
+  /* (décoratif : pas d'interaction) */
+  /* 6. Responsive -------------------------------------------------------- */
+  @media (max-width:560px){.wave{height:3.5rem}}
+  /* 7. Accessibilité ----------------------------------------------------- */
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  /* --- Révélation au scroll (FADEIN discret) ---------------------------
+     État caché UNIQUEMENT sous .wf-js (JS actif) ; sans JS = tout visible.
+     La vague + la section colorée se révèlent en fondu doux ; la vague monte
+     de quelques px. Court & sobre. */
+  .wf-js .wave{opacity:0;transform:translateY(10px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+  .wf-js .bottom{opacity:0;transform:translateY(8px);transition:opacity .8s var(--ease) .1s,transform .8s var(--ease) .1s}
+  .wf-js .is-in.wave,.wf-js .is-in.bottom{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){
+    .wf-js .wave,.wf-js .bottom{opacity:1!important;transform:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+
+<!-- ==========================================================================
+     STRUCTURE — vague SVG entre deux sections. La vague hérite de la couleur
+     du fond bas (var(--accent)). Remplacez les textes ; ajustez le path si
+     vous voulez une autre forme.
+     ========================================================================== -->
+<section class="top">
+  <div class="top__inner">
+    <span class="eyebrow">Section claire</span>
+    <h2>Au-dessus de la vague</h2>
+    <p>Le contenu sur fond clair se termine ici.</p>
+  </div>
+</section>
+
+<div class="wave" aria-hidden="true">
+  <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
+    <path d="M0,64 C240,120 480,8 720,40 C960,72 1200,120 1440,72 L1440,120 L0,120 Z"></path>
+  </svg>
+</div>
+
+<section class="bottom">
+  <div class="bottom__inner">
+    <span class="eyebrow">Section colorée</span>
+    <h2>Sous la vague</h2>
+    <p>La transition se fait en douceur d'un fond à l'autre.</p>
+  </div>
+</section>
+
+<!-- ==========================================================================
+     SCRIPT — Révélation au scroll (FADEIN). JS natif, zéro dépendance.
+     On ajoute .is-in à la vague et à la section colorée quand elles entrent à
+     l'écran. Fallback (pas d'IO ou reduced-motion) : on révèle tout direct.
+     ========================================================================== -->
+<script>
+(function(){
+  var els = document.querySelectorAll('.wave, .bottom');
+  if(!els.length) return;
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+  if(reduce || !('IntersectionObserver' in window)){
+    els.forEach(function(el){ el.classList.add('is-in'); });
+    return;
+  }
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){ e.target.classList.add('is-in'); io.unobserve(e.target); }
+    });
+  },{threshold:.25,rootMargin:'0px 0px -10% 0px'});
+  els.forEach(function(el){ io.observe(el); });
+})();
+</script>
+
+</body>
+</html>

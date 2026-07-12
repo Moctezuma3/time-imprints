@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- lib:meta -->
+<meta name="lib:id" content="heros_hero-fullscreen-video">
+<meta name="lib:groupe" content="01-header">
+<meta name="lib:categorie" content="heros">
+<meta name="lib:intention" content="ouverture-captation">
+<meta name="lib:placement" content="section">
+<meta name="lib:niveau" content="2">
+<meta name="lib:titre" content="Vidéo YouTube en fond plein écran (sans habillage)">
+<meta name="lib:tags" content="vidéo, youtube, sombre, sans contrôles, JS natif, halo curseur, CTA remplissage">
+<meta name="lib:utilite" content="Immersion, dynamisme. Secteurs visuels (resto, hôtel, mode). Le fond est une VIDÉO YOUTUBE plein écran SANS habillage (pas de contrôles, play/pause, logo ni titre YouTube ; non cliquable ; autoplay muet + boucle). Effet Webflow au chargement : titre révélé mot à mot par masque, badge/sous-titre/CTA en fondu-montée. Interactif : halo au curseur + CTA principal à remplissage circulaire depuis le curseur (souris fine). Remplacez l'ID YouTube (embed + playlist).">
+<meta name="lib:showcase" content="non">
+<meta name="lib:secteurs" content="polyvalent">
+<meta name="lib:slots" content="titre:titre:court; accroche:texte:moyen; cta:cta:1-2; visuel:video:1">
+<meta name="lib:anatomie" content="base:1 surtitre/badge, 1 titre, 1 sous-titre, 2 boutons, 1 vidéo YouTube de fond; layout:section pleine hauteur sombre, contenu aligné à gauche (max 40rem); surtitre:badge avec pastille ronde en accent, libellé atténué; titre:H1 (clamp 2.6 à 4.8rem), fragment en em coloré accent; sous-titre:paragraphe atténué max 32rem; cta:2 boutons (1 primaire accent + 1 fantôme translucide), arrondis 0.55rem; visuel:1 iframe youtube-nocookie en fond plein écran, autoplay muet boucle, sur-cadrée (scale) pour rogner l habillage, pointer-events desactives, controls=0 modestbranding=1 rel=0 fs=0 iv_load_policy=3, double voile dégradé pour lisibilité; animation:titre révélé mot à mot par masque (cascade JS), badge/sous-titre/boutons en fondu-montée; hover:halo accent qui suit le curseur, bouton primaire à remplissage circulaire d-un disque accent grandissant depuis le point du curseur (souris fine); responsive:padding réduit, boutons en colonne pleine largeur sous 768px, sur-cadrage vidéo accru; a11y:reduced-motion masque la vidéo et le halo, titre figé, CTA en remplissage simple">
+<!-- /lib:meta -->
+<title>Vidéo en fond plein écran</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700&display=swap" rel="stylesheet">
+
+<!-- ==========================================================================
+     STYLE — Hero 04 · Vidéo en fond plein écran + voile
+     Re-skin rapide : modifie uniquement le bloc :root (section 1).
+     ⚠ Remplace l'URL de <source> et le poster par le média du client.
+     ========================================================================== -->
+<style>
+  /* --- 1. TOKENS ---------------------------------------------------------- */
+  :root{
+    --bg:#0a0a0c;
+    --fg:#f5f5f6;
+    --muted:#c2c2c9;
+    --accent:#e0a93b;
+    --font:"Outfit",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --maxw:1280px;
+  }
+
+  /* --- 2. RESET ----------------------------------------------------------- */
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+  /* --- 3. LAYOUT ---------------------------------------------------------- */
+  .hero{
+    position:relative;min-height:100dvh;display:flex;align-items:center;
+    overflow:hidden;background:var(--bg);color:var(--fg);font-family:var(--font);
+  }
+  /* fond vidéo YouTube : couvre tout, sur-cadré (scale) pour rogner l'habillage,
+     non interactif (pointer-events:none) → pas de contrôles/logo/titre cliquables */
+  /* pinné sur la hauteur VISIBLE (pas la hauteur du hero qui peut déborder) → vidéo centrée sur la vue */
+  .hero__video{position:absolute;top:0;left:0;width:100%;height:100dvh;z-index:0;overflow:hidden;background:var(--bg)}
+  .hero__video iframe{
+    position:absolute;top:50%;left:50%;border:0;pointer-events:none;
+    width:100vw;height:56.25vw;min-width:177.78dvh;min-height:100dvh;   /* 16:9, plein-hauteur (dvh), cover */
+    transform:translate(-50%,-50%);   /* centré, aucun scale/zoom */
+  }
+  .hero__veil{                       /* voile lisibilité, sans glow */
+    position:absolute;inset:0;z-index:1;
+    background:
+      linear-gradient(90deg, rgba(10,10,12,.78) 0%, rgba(10,10,12,.30) 55%, rgba(10,10,12,.10) 100%),
+      linear-gradient(180deg, transparent 60%, var(--bg) 100%);
+  }
+  /* halo doux qui suit le curseur — couche entre le voile (z1) et le texte (z2) */
+  .hero__glow{
+    position:absolute;inset:-12%;z-index:1;pointer-events:none;
+    background:radial-gradient(40% 40% at 30% 30%, rgba(224,169,59,.14) 0%, transparent 60%);
+    will-change:transform;
+    transition:transform .5s cubic-bezier(.16,1,.3,1);
+  }
+  .hero__inner{
+    position:relative;z-index:2;width:100%;max-width:var(--maxw);
+    margin:0 auto;padding:0 6vw;
+  }
+  .hero__content{max-width:40rem}
+
+  /* --- 4. TYPOGRAPHIE ----------------------------------------------------- */
+  .hero__badge{
+    display:inline-flex;align-items:center;gap:.55rem;
+    font-size:.8rem;font-weight:500;letter-spacing:.04em;
+    color:var(--muted);margin-bottom:1.6rem;
+  }
+  .hero__badge::before{
+    content:"";width:.5rem;height:.5rem;border-radius:50%;
+    background:var(--accent);
+  }
+  .hero__title{
+    font-size:clamp(2.6rem,5.6vw,4.8rem);font-weight:700;
+    line-height:1.1;letter-spacing:-.02em;margin-bottom:1.3rem;
+  }
+  /* révélation du titre mot à mot par masque (les .w sont créés par JS) */
+  .hero__title .w{display:inline-block;overflow:hidden;vertical-align:top;
+    padding:.18em 0;margin:-.18em 0}   /* marge haut+bas → accents/jambages non coupés */
+  .hero__title .w__in{display:inline-block;transform:translateY(115%);
+    animation:wordUp .9s cubic-bezier(.16,1,.3,1) both}
+  .hero__title .w--em .w__in{color:var(--accent)}
+  @keyframes wordUp{to{transform:translateY(0)}}
+  .hero__title em{font-style:normal;color:var(--accent)}  /* fallback sans JS */
+  .hero__sub{
+    font-size:1.12rem;line-height:1.62;color:var(--muted);
+    max-width:32rem;margin-bottom:2.3rem;
+  }
+
+  /* --- 5. ACCENT / boutons ------------------------------------------------ */
+  .hero__actions{display:flex;flex-wrap:wrap;gap:.85rem}
+  .btn{
+    font:inherit;font-weight:500;font-size:.98rem;padding:.9rem 1.7rem;
+    border-radius:.55rem;text-decoration:none;cursor:pointer;
+    border:1px solid transparent;
+    transition:transform .25s cubic-bezier(.16,1,.3,1),background .25s,border-color .25s;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn--primary{background:var(--accent);color:#1a1a1a}
+  .btn--primary:hover{filter:brightness(1.06)}
+  .btn--ghost{background:rgba(255,255,255,.06);color:var(--fg);border-color:rgba(255,255,255,.3)}
+  .btn--ghost:hover{border-color:var(--fg)}
+
+  /* CTA principal : remplissage circulaire depuis le curseur (souris fine) */
+  @media (hover:hover) and (pointer:fine){
+    .btn--primary{
+      position:relative;isolation:isolate;overflow:hidden;
+      background:rgba(224,169,59,.14);color:var(--fg);
+      border-color:rgba(224,169,59,.5);
+      transition:color .35s cubic-bezier(.16,1,.3,1),
+                 transform .25s cubic-bezier(.16,1,.3,1),border-color .25s;
+    }
+    .btn--primary::before{
+      content:"";position:absolute;z-index:-1;
+      top:var(--y,50%);left:var(--x,50%);width:0;height:0;border-radius:50%;
+      background:var(--accent);transform:translate(-50%,-50%);
+      transition:width .5s cubic-bezier(.16,1,.3,1),height .5s cubic-bezier(.16,1,.3,1);
+    }
+    .btn--primary:hover{color:#1a1a1a;filter:none}
+    .btn--primary:hover::before{width:360px;height:360px}
+  }
+
+  /* --- 6. RESPONSIVE ------------------------------------------------------ */
+  @media (max-width:768px){
+    .hero__inner{padding:0 1.4rem}
+    .hero__actions{flex-direction:column}
+    .btn{width:100%;text-align:center}
+  }
+
+  /* --- 7. ACCESSIBILITÉ --------------------------------------------------- */
+  @media (prefers-reduced-motion:reduce){.hero__video{display:none}}
+
+  /* --- Entrée au chargement : fondu-montée (badge/sous-titre/CTA) ------ */
+  @keyframes fadeUp{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:translateY(0)}}
+  .hero__badge{animation:fadeUp .8s cubic-bezier(.16,1,.3,1) .06s backwards}
+  .hero__sub{animation:fadeUp .8s cubic-bezier(.16,1,.3,1) .5s backwards}
+  .hero__actions{animation:fadeUp .8s cubic-bezier(.16,1,.3,1) .62s backwards}
+
+  /* reduced-motion : titre visible sans animation, pas de ken-burns */
+  @media (prefers-reduced-motion:reduce){
+    .hero__badge,.hero__sub,.hero__actions{animation:none}
+    .hero__title .w__in{transform:none;animation:none}
+    .hero__video{animation:none}
+    /* halo neutralisé + CTA sans remplissage agressif (retour au plein simple) */
+    .hero__glow{display:none}
+    .btn--primary{background:var(--accent);color:#1a1a1a;border-color:transparent}
+    .btn--primary::before{transition:none}
+    .btn--primary:hover::before{width:0;height:0}
+  }
+</style>
+</head>
+<body>
+
+<!-- ==========================================================================
+     STRUCTURE — contenu à personnaliser
+     poster = image affichée avant chargement / si vidéo bloquée
+     ========================================================================== -->
+<section class="hero">
+
+  <!-- fond vidéo YouTube (sans habillage). ⚠ Remplacez YT_ID aux 2 endroits :
+       .../embed/YT_ID?...  ET  playlist=YT_ID (nécessaire pour la boucle). -->
+  <div class="hero__video" aria-hidden="true" data-slot="visuel">
+    <iframe src="https://www.youtube-nocookie.com/embed/YT_ID?autoplay=1&mute=1&loop=1&playlist=YT_ID&controls=0&modestbranding=1&rel=0&disablekb=1&fs=0&playsinline=1&iv_load_policy=3"
+            title="Vidéo de fond" allow="autoplay; encrypted-media"
+            referrerpolicy="strict-origin-when-cross-origin" tabindex="-1" data-field="video"></iframe>
+  </div>
+
+  <div class="hero__veil"></div>
+  <div class="hero__glow" aria-hidden="true"></div>
+
+  <div class="hero__inner">
+    <div class="hero__content">
+      <span class="hero__badge">Surtitre · catégorie</span>
+      <h1 class="hero__title" data-slot="titre">Construisons quelque chose qui vous ressemble.</h1>
+      <p class="hero__sub" data-slot="accroche">
+        Quelques mots pour préciser l'intention, poser le contexte et donner
+        envie d'aller plus loin sans trop en dire.
+      </p>
+      <div class="hero__actions">
+        <a class="btn btn--primary" href="#" data-slot="cta">Découvrir</a>
+        <a class="btn btn--ghost" href="#" data-slot="cta">Nous contacter</a>
+      </div>
+    </div>
+  </div>
+
+
+</section>
+
+<!-- SCRIPT — titre mot à mot (masque) + halo curseur + CTA à remplissage circulaire -->
+<script>
+  (function () {
+    var title = document.querySelector('.hero__title');
+    var rm = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+    /* 1. Titre → mots masqués (préserve le <em>) — sauf reduced-motion */
+    if (title && !rm) {
+      var i = 0, frag = document.createDocumentFragment();
+      function words(text, isEm) {
+        text.split(/(\s+)/).forEach(function (tok) {
+          if (tok === '') return;
+          if (/^\s+$/.test(tok)) { frag.appendChild(document.createTextNode(' ')); return; }
+          var w = document.createElement('span'); w.className = 'w' + (isEm ? ' w--em' : '');
+          var inner = document.createElement('span'); inner.className = 'w__in'; inner.textContent = tok;
+          inner.style.animationDelay = (0.12 + i * 0.055) + 's'; i++;
+          w.appendChild(inner); frag.appendChild(w);
+        });
+      }
+      [].forEach.call(title.childNodes, function (n) {
+        if (n.nodeType === 3) words(n.textContent, false);
+        else words(n.textContent, n.tagName === 'EM');
+      });
+      title.textContent = ''; title.appendChild(frag);
+    }
+
+    /* 2. Effets curseur : souris fine uniquement, hors reduced-motion */
+    if (rm || !window.matchMedia('(hover:hover) and (pointer:fine)').matches) return;
+
+    /* 2a. Halo qui suit le curseur (translate doux de la couche .hero__glow) */
+    var hero = document.querySelector('.hero');
+    var glow = document.querySelector('.hero__glow');
+    if (hero && glow) {
+      hero.addEventListener('mousemove', function (e) {
+        var r = hero.getBoundingClientRect();
+        var cx = e.clientX - r.left - r.width / 2, cy = e.clientY - r.top - r.height / 2;
+        glow.style.transform = 'translate(' + (cx * 0.03) + 'px,' + (cy * 0.03) + 'px)';
+      });
+      hero.addEventListener('mouseleave', function () { glow.style.transform = ''; });
+    }
+
+    /* 2b. CTA principal : le disque d'accent grandit depuis le point du curseur */
+    var cta = document.querySelector('.btn--primary');
+    if (cta) {
+      function place(e) {
+        var r = cta.getBoundingClientRect();
+        cta.style.setProperty('--x', (e.clientX - r.left) + 'px');
+        cta.style.setProperty('--y', (e.clientY - r.top) + 'px');
+      }
+      cta.addEventListener('mouseenter', place);
+      cta.addEventListener('mousemove', place);
+    }
+  })();
+</script>
+
+</body>
+</html>

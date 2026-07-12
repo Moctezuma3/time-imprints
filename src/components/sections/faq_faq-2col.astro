@@ -1,0 +1,187 @@
+---
+/**
+ * Integration — section `faq_faq-2col` (NORMAL section, non-bleed).
+ * Phase 2 rules applied:
+ *   1. Local `:root` tokens deleted → inherits base tokens.
+ *   2. Local reset + Google-Fonts import + <head> markup deleted (summary
+ *      marker reset kept, scoped — the base layout does not reset <summary>).
+ *   3. Internal vertical padding REMOVED → uniform `--section-y` from base.
+ *   4. Hard-coded colors (#f1f1ed, #16181d…) → tokens (--accent, --line,
+ *      --muted, color-mix tints) — question hover + open icon in brand pink.
+ *   5. Eyebrow REMOVED (typo sobriety rule).
+ *   6. Load-time cascade converted to the house scroll-reveal (`.wf-rev`
+ *      spirit): gated behind `:global(.wf-js)`, IntersectionObserver on each
+ *      root (`.ti-faq`), reduced-motion + no-JS fallbacks. Accordion itself
+ *      stays pure CSS (<details>/<summary>).
+ */
+export interface Props {
+  title?: string;
+  subtitle?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+  questions?: { question: string; answer: string }[];
+}
+const {
+  title = "Questions, answered.",
+  subtitle = "Everything about the paint, the shipping and the mess. If your question isn't here, just ask at checkout.",
+  ctaLabel = "Browse the kits",
+  ctaHref = "/kits/",
+  questions = [
+    {
+      question: "How do I order?",
+      answer: "Add a kit to your cart, choose your size, and check out — we confirm by email and ship the same week. You can note your paint colors at checkout.",
+    },
+    {
+      question: "Is the paint safe on skin?",
+      answer: "Yes — hypoallergenic, made for skin contact, washes off with warm water. Safe around kids and pets.",
+    },
+    {
+      question: "Can I wash the t-shirt afterwards?",
+      answer: "Yes. Once the fabric paint dries, it's fixed — machine wash like any tee.",
+    },
+    {
+      question: "Do you ship to my country?",
+      answer: "Almost certainly: we ship worldwide from Ukraine with tracking. Shipping is free and calculated at checkout.",
+    },
+    {
+      question: "Which paint colors can I pick?",
+      answer: "Canvas kits: orange, green, sky blue, gold, pink, silver — all pearlescent. T-shirt kits: black, white, red, sky blue, pink. Tell us your picks in the order notes.",
+    },
+    {
+      question: "Any discounts?",
+      answer: "Every box includes a scratch card with a discount for your next kit — valid 6 months.",
+    },
+  ],
+} = Astro.props;
+const ctaExternal = /^https?:/i.test(ctaHref);
+---
+
+<section class="ti-faq" aria-label="Frequently asked questions">
+  <div class="inner">
+
+    <aside class="intro">
+      <h2 class="intro__title" data-slot="titre">{title}</h2>
+      <p class="intro__sub">{subtitle}</p>
+      <a
+        href={ctaHref}
+        class="intro__cta"
+        target={ctaExternal ? "_blank" : undefined}
+        rel={ctaExternal ? "noopener" : undefined}
+      >
+        {ctaLabel}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </aside>
+
+    <div class="qa-list" data-slot="questions">
+      {questions.map((q, i) => (
+        <details class="qa" open={i === 0} data-slot-item>
+          <summary class="qa__q">
+            <span data-field="question">{q.question}</span>
+            <svg class="qa__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          </summary>
+          <div class="qa__body"><div><p data-field="reponse">{q.answer}</p></div></div>
+        </details>
+      ))}
+    </div>
+
+  </div>
+</section>
+
+<style>
+  .ti-faq { --ease: cubic-bezier(.16,1,.3,1); color: var(--fg); }
+  .inner {
+    width: 100%; max-width: var(--container); margin: 0 auto; padding-inline: var(--gutter);
+    display: grid; grid-template-columns: 1fr 1.4fr; gap: clamp(2rem, 5vw, 4rem);
+    align-items: start;
+  }
+
+  /* left column: intro (sticky, leaves room for the sticky navbar) */
+  .intro { position: sticky; top: 6rem; }
+  .intro__title { font-size: clamp(1.9rem, 3.4vw, 2.6rem); font-weight: 800; letter-spacing: -.025em; line-height: 1.1; }
+  .intro__sub { margin-top: 1rem; color: var(--muted); line-height: 1.6; font-size: 1rem; }
+  .intro__cta {
+    margin-top: 1.4rem; display: inline-flex; align-items: center; gap: .45rem;
+    padding: .7rem 1.1rem; border: 1px solid var(--line); border-radius: var(--radius);
+    font-size: .92rem; font-weight: 500; text-decoration: none;
+    transition: background .3s var(--ease), border-color .3s var(--ease), transform .25s var(--ease);
+  }
+  .intro__cta:hover {
+    background: color-mix(in srgb, var(--fg) 8%, transparent);
+    border-color: color-mix(in srgb, var(--fg) 25%, var(--line));
+    transform: translateY(-1px);
+  }
+  .intro__cta svg { width: .9rem; height: .9rem; transition: transform .3s var(--ease); }
+  .intro__cta:hover svg { transform: translateX(3px); }
+
+  /* right column: Q&A (native <details>, no JS needed for the accordion) */
+  .qa { border-bottom: 1px solid var(--line); }
+  .qa:first-child { border-top: 1px solid var(--line); }
+  .qa__q {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: 1.1rem 0; font-size: 1.02rem; font-weight: 500; letter-spacing: -.005em;
+    cursor: pointer; list-style: none;
+  }
+  .qa__q::-webkit-details-marker { display: none; }
+  .qa__q:hover { color: var(--accent); }
+  .qa__icon { width: 1.3rem; height: 1.3rem; flex-shrink: 0; color: var(--muted); transition: transform .3s var(--ease), color .3s var(--ease); }
+  .qa[open] .qa__icon { transform: rotate(45deg); color: var(--accent); }
+  .qa__body p { padding: 0 0 1.1rem; color: var(--muted); line-height: 1.65; font-size: .96rem; }
+
+  /* scroll-reveal cascade — gated behind .wf-js so no-JS keeps everything visible */
+  :global(.wf-js) .ti-faq .intro,
+  :global(.wf-js) .ti-faq .qa {
+    opacity: 0; transform: translateY(22px);
+    transition: opacity .6s var(--ease), transform .6s var(--ease);
+    transition-delay: var(--d, 0s);
+  }
+  :global(.wf-js) .ti-faq.is-in .intro,
+  :global(.wf-js) .ti-faq.is-in .qa { opacity: 1; transform: none; }
+  .qa:nth-child(1) { --d: .12s; }
+  .qa:nth-child(2) { --d: .20s; }
+  .qa:nth-child(3) { --d: .28s; }
+  .qa:nth-child(4) { --d: .36s; }
+  .qa:nth-child(5) { --d: .44s; }
+  .qa:nth-child(6) { --d: .52s; }
+  .qa:nth-child(n+7) { --d: .60s; }
+
+  @media (max-width: 820px) {
+    .inner { grid-template-columns: 1fr; gap: 2rem; }
+    .intro { position: static; }
+  }
+  @media (max-width: 640px) {
+    /* readable answers despite the base mobile text-centering */
+    .qa__q, .qa__body { text-align: left; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .qa__icon, .intro__cta, .intro__cta svg { transition: none; }
+    :global(.wf-js) .ti-faq .intro,
+    :global(.wf-js) .ti-faq .qa { opacity: 1; transform: none; transition: none; }
+  }
+</style>
+
+<script>
+  document.documentElement.classList.add("wf-js");
+  (function () {
+    const roots = document.querySelectorAll(".ti-faq");
+    if (!roots.length) return;
+
+    const reduce = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+    if (reduce || !("IntersectionObserver" in window)) {
+      roots.forEach((r) => r.classList.add("is-in"));
+      return;
+    }
+
+    const io = new IntersectionObserver((entries, obs) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          e.target.classList.add("is-in");
+          obs.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.15 });
+
+    roots.forEach((r) => io.observe(r));
+  })();
+</script>

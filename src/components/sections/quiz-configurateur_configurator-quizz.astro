@@ -1,0 +1,273 @@
+---
+/**
+ * Integration — section `quiz-configurateur_configurator-quizz` (NORMAL section, non-bleed).
+ * Phase 2 rules applied:
+ *   1. Local `:root` tokens deleted → inherits base tokens.
+ *   2. Local reset + Google-Fonts import + <head> markup deleted.
+ *   3. `min-height:100dvh` body-centering REMOVED → section head + centered
+ *      card, uniform `--section-y` rhythm from the base (no data-bleed).
+ *   4. Hard-coded colors → tokens; progress fill + result name wear the brand
+ *      pink→cyan gradient (--accent → --accent-2).
+ *   5. Score-based "pack" logic REPLACED by a decision tree over real
+ *      Time Imprints products (PRODUCTS imported, serialized in a data
+ *      attribute → no invented content in JS).
+ *   6. JS scoped per root (`.ti-quiz`), no `id` attributes → safe with 0 or
+ *      N instances on a page. `stepIn` fade kept + reduced-motion fallback.
+ */
+import { PRODUCTS } from "../../data/site";
+
+export interface Props {
+  title?: string;
+  subtitle?: string;
+  resultLabel?: string;
+  viewKitLabel?: string;
+  addLabel?: string;
+  restartLabel?: string;
+}
+const {
+  title = "Find your kit in 15 seconds",
+  subtitle = "Three quick questions, one perfect box of paint. No wrong answers.",
+  resultLabel = "Your kit",
+  viewKitLabel = "View kit",
+  addLabel = "Add to cart",
+  restartLabel = "Start over",
+} = Astro.props;
+
+/* Real product data, keyed by slug, for the client-side recommendation. */
+const quizProducts = Object.fromEntries(
+  PRODUCTS.map((p) => [
+    p.slug,
+    { slug: p.slug, name: p.name, short: p.short, priceEur: p.priceEur, image: p.image, url: `/kits/${p.slug}/` },
+  ])
+);
+
+const QUESTIONS = [
+  {
+    key: "who",
+    title: "Who's it for?",
+    options: [
+      { value: "partner", label: "My partner", hint: "Date night, upgraded" },
+      { value: "family", label: "My family", hint: "Small hands welcome" },
+      { value: "self", label: "Myself", hint: "Self-love counts" },
+    ],
+  },
+  {
+    key: "keep",
+    title: "What do you want to keep?",
+    options: [
+      { value: "wall", label: "Art for the wall", hint: "A canvas to hang" },
+      { value: "wear", label: "Something to wear", hint: "A tee with a story" },
+    ],
+  },
+  {
+    key: "vibe",
+    title: "Pick a vibe",
+    options: [
+      { value: "romantic", label: "Romantic", hint: "Kisses and slow songs" },
+      { value: "playful", label: "Playful", hint: "Paint fight probable" },
+      { value: "cozy", label: "Cozy", hint: "Warm hugs, warm tees" },
+    ],
+  },
+];
+---
+
+<section class="ti-quiz" aria-label="Kit finder quiz" data-products={JSON.stringify(quizProducts)}>
+  <div class="inner">
+
+    <header class="head">
+      <h2 data-slot="titre">{title}</h2>
+      <p class="sub">{subtitle}</p>
+    </header>
+
+    <div class="quiz">
+
+      <div class="progress" aria-hidden="true">
+        {QUESTIONS.map((_, i) => <span class={i === 0 ? "is-on" : ""}></span>)}
+      </div>
+
+      {QUESTIONS.map((q, i) => (
+        <fieldset class={`q${i === 0 ? " is-active" : ""}`} data-key={q.key} data-slot="champs">
+          <span class="q__num">Question {i + 1} / {QUESTIONS.length}</span>
+          <h3 class="q__title">{q.title}</h3>
+          <div class="tiles">
+            {q.options.map((o) => (
+              <button type="button" class="tile" data-value={o.value}>
+                <strong>{o.label}</strong><span>{o.hint}</span>
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      ))}
+
+      <!-- Result — filled by JS from real product data before being shown -->
+      <div class="result" aria-live="polite">
+        <img class="result__img" alt="" loading="lazy" width="640" height="480" data-el="image" />
+        <span class="result__label" data-slot="resultat">{resultLabel}</span>
+        <div class="result__name" data-el="name">—</div>
+        <div class="result__price" data-el="price"></div>
+        <p class="result__desc" data-el="short"></p>
+        <div class="result__actions">
+          <button type="button" class="btn btn--primary" data-el="add" data-label-original={addLabel}>{addLabel}</button>
+          <a class="btn btn--ghost" href="/kits/" data-el="view" data-slot="cta">{viewKitLabel}</a>
+        </div>
+        <button type="button" class="result__again">↺ {restartLabel}</button>
+      </div>
+
+      <noscript>
+        <p class="quiz__noscript">The quiz needs JavaScript — <a href="/kits/">browse all five kits instead</a>.</p>
+      </noscript>
+
+    </div>
+
+  </div>
+</section>
+
+<style>
+  .ti-quiz { --ease: cubic-bezier(.22,1,.36,1); color: var(--fg); }
+  .inner { width: 100%; max-width: var(--container); margin: 0 auto; padding-inline: var(--gutter); }
+
+  .head { max-width: 40rem; margin: 0 auto clamp(2rem, 4vw, 2.8rem); text-align: center; }
+  .head h2 { font-size: clamp(2rem, 4.4vw, 3rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.08; }
+  .head .sub { margin-top: .8rem; color: var(--muted); font-size: 1.02rem; line-height: 1.6; }
+
+  .quiz {
+    width: 100%; max-width: 36rem; margin-inline: auto;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: clamp(1.6rem, 3vw, 2.2rem);
+    box-shadow: 0 24px 48px -30px var(--shadow-color);
+  }
+
+  .progress { display: flex; gap: .4rem; margin-bottom: 1.4rem; }
+  .progress span { flex: 1; height: .25rem; border-radius: 99px; background: var(--line); transition: background .3s var(--ease); }
+  .progress span.is-on { background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+
+  .q { display: none; flex-direction: column; gap: 1rem; border: 0; padding: 0; margin: 0; }
+  .q.is-active { display: flex; animation: stepIn .4s var(--ease); }
+  .q__num { font-size: .78rem; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  .q__title { font-size: 1.3rem; font-weight: 600; letter-spacing: -.015em; }
+
+  .tiles { display: grid; gap: .6rem; }
+  .tile {
+    padding: 1rem 1.1rem; border-radius: calc(var(--radius) * .6 + 4px);
+    border: 1px solid var(--line); background: transparent;
+    cursor: pointer; text-align: left; font: inherit; color: inherit;
+    transition: border-color .2s, background .2s, transform .2s var(--ease);
+  }
+  .tile:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, transparent); transform: translateY(-2px); }
+  .tile:active { transform: scale(.97); }
+  .tile strong { display: block; font-size: .98rem; font-weight: 600; }
+  .tile span { display: block; font-size: .84rem; color: var(--muted); margin-top: .2rem; }
+
+  /* result */
+  .result { display: none; text-align: center; padding: .5rem 0; }
+  .result.is-active { display: block; animation: stepIn .4s var(--ease); }
+  .result__img {
+    width: min(100%, 20rem); aspect-ratio: 4/3; object-fit: cover;
+    border-radius: var(--radius); border: 1px solid var(--line); margin: 0 auto 1.3rem;
+  }
+  .result__label { font-size: .78rem; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  .result__name {
+    font-size: clamp(1.7rem, 3.6vw, 2.2rem); font-weight: 800; letter-spacing: -.02em;
+    margin: .35rem auto .15rem; width: fit-content;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .result__price { font-weight: 700; margin-bottom: .6rem; }
+  .result__desc { color: var(--muted); line-height: 1.55; font-size: .98rem; margin-bottom: 1.4rem; }
+  .result__actions { display: flex; justify-content: center; align-items: center; gap: .7rem; flex-wrap: wrap; }
+  .result__again {
+    display: block; margin: 1.1rem auto 0; background: none; border: 0;
+    color: var(--muted); font-size: .85rem; cursor: pointer; text-decoration: underline;
+  }
+  .result__again:hover { color: var(--fg); }
+
+  .quiz__noscript { text-align: center; color: var(--muted); font-size: .95rem; margin-top: 1rem; }
+
+  /* STEPFADE — active step / result, replayed on each navigation */
+  @keyframes stepIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .progress span, .tile { transition: none; }
+    .q.is-active, .result.is-active { animation: none; }
+    .tile:hover, .tile:active { transform: none; }
+  }
+</style>
+
+<script>
+  (function () {
+    document.querySelectorAll(".ti-quiz").forEach((root) => {
+      type QuizProduct = { slug: string; name: string; short: string; priceEur: number; image: string; url: string };
+      let products: Record<string, QuizProduct> = {};
+      try {
+        products = JSON.parse(root.getAttribute("data-products") || "{}");
+      } catch (_e) { /* malformed data → quiz stays inert */ }
+
+      const qs: HTMLElement[] = Array.prototype.slice.call(root.querySelectorAll(".q"));
+      const dots: HTMLElement[] = Array.prototype.slice.call(root.querySelectorAll(".progress span"));
+      const result = root.querySelector<HTMLElement>(".result");
+      const img = root.querySelector<HTMLImageElement>("[data-el='image']");
+      const nameEl = root.querySelector<HTMLElement>("[data-el='name']");
+      const priceEl = root.querySelector<HTMLElement>("[data-el='price']");
+      const shortEl = root.querySelector<HTMLElement>("[data-el='short']");
+      const viewEl = root.querySelector<HTMLAnchorElement>("[data-el='view']");
+      const addEl = root.querySelector<HTMLButtonElement>("[data-el='add']");
+      const again = root.querySelector<HTMLElement>(".result__again");
+      if (!qs.length || !result || !img || !nameEl || !priceEl || !shortEl || !viewEl || !addEl || !again) return;
+
+      const answers: Record<string, string> = {};
+
+      /* Decision tree:
+         wall  + family            → hand-imprints
+         wall  + partner / myself  → body-imprints
+         wear  + myself            → body-tshirt
+         wear  + family            → hugs
+         wear  + partner           → romantic: kisses · playful/cozy: hugs */
+      function recommend(): string {
+        if (answers.keep === "wall") return answers.who === "family" ? "hand-imprints" : "body-imprints";
+        if (answers.who === "self") return "body-tshirt";
+        if (answers.who === "family") return "hugs";
+        return answers.vibe === "romantic" ? "kisses" : "hugs";
+      }
+
+      function goto(i: number) {
+        result.classList.remove("is-active");
+        qs.forEach((q, k) => q.classList.toggle("is-active", k === i));
+        dots.forEach((d, k) => d.classList.toggle("is-on", k <= i));
+      }
+
+      function showResult() {
+        const p = products[recommend()];
+        if (!p) return;
+        img.src = p.image;
+        img.alt = p.name;
+        nameEl.textContent = p.name;
+        priceEl.textContent = `${p.priceEur} €`;
+        shortEl.textContent = p.short;
+        viewEl.href = p.url;
+        addEl!.dataset.slug = p.slug;
+        addEl!.dataset.name = p.name;
+        addEl!.dataset.price = String(p.priceEur);
+        addEl!.dataset.image = p.image;
+        addEl!.dataset.addToCart = "";
+        qs.forEach((q) => q.classList.remove("is-active"));
+        dots.forEach((d) => d.classList.add("is-on"));
+        result.classList.add("is-active");
+      }
+
+      qs.forEach((q, i) => {
+        q.querySelectorAll(".tile").forEach((b) => {
+          b.addEventListener("click", () => {
+            answers[q.getAttribute("data-key") || String(i)] = b.getAttribute("data-value") || "";
+            if (i + 1 < qs.length) goto(i + 1);
+            else showResult();
+          });
+        });
+      });
+
+      again.addEventListener("click", () => {
+        Object.keys(answers).forEach((k) => delete answers[k]);
+        goto(0);
+      });
+    });
+  })();
+</script>

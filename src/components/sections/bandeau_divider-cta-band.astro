@@ -1,0 +1,151 @@
+---
+/**
+ * Integration — section `bandeau_divider-cta-band` (NORMAL section, non-bleed,
+ * placed between sections in <main>). Phase 2 rules applied:
+ *   1. Local :root tokens + reset + Google-Fonts removed → base tokens inherited.
+ *   2. Wrapper vertical padding REMOVED → uniform --section-y rhythm from the base.
+ *   3. Hard-coded accent + whites → tokens; band background = brand signature
+ *      gradient pink→cyan (var(--accent) → var(--accent-2)).
+ *   4. Reveal pattern kept (`:global(.wf-js)` so the scoped selector matches the
+ *      class set on <html>); fill-button disc from cursor kept.
+ *   5. JS scoped to `.ti-ctaband` roots (querySelectorAll + forEach — safe with
+ *      0..n instances on the page).
+ */
+export interface Props {
+  title?: string;
+  text?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+}
+const {
+  title = "Give a memory, not a thing.",
+  text = "Five kits, skin-safe paint, everything in the box — from 15 €.",
+  ctaLabel = "Browse the kits",
+  ctaHref = "/kits/",
+} = Astro.props;
+const external = /^https?:\/\//.test(ctaHref);
+---
+
+<section class="ti-ctaband" aria-label={title}>
+  <div class="inner">
+    <div class="band">
+      <div class="band__txt wf-rev" style="--d:0s">
+        <h2>{title}</h2>
+        {text && <p>{text}</p>}
+      </div>
+      <a
+        class="band-btn wf-rev"
+        style="--d:.12s"
+        href={ctaHref}
+        target={external ? "_blank" : undefined}
+        rel={external ? "noopener" : undefined}
+      >
+        {ctaLabel}
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .ti-ctaband {
+    --ease: cubic-bezier(.16, 1, .3, 1);
+    --easeBack: cubic-bezier(.34, 1.56, .64, 1);
+  }
+  .inner { max-width: var(--container); margin: 0 auto; padding-inline: var(--gutter); }
+
+  .band {
+    max-width: 64rem; margin: 0 auto;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: var(--accent-contrast);
+    border-radius: calc(var(--radius) + 6px);
+    padding: clamp(1.8rem, 4vw, 2.6rem);
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.5rem;
+    position: relative; overflow: hidden;
+    box-shadow: 0 30px 60px -35px var(--shadow-color);
+  }
+  .band::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(60% 140% at 100% 0%, color-mix(in srgb, var(--accent-contrast) 18%, transparent), transparent 60%);
+  }
+  .band__txt { position: relative; flex: 1 1 18rem; }
+  .band__txt h2 { font-size: clamp(1.4rem, 3.2vw, 2rem); font-weight: 800; letter-spacing: -.02em; }
+  .band__txt p { color: color-mix(in srgb, var(--accent-contrast) 88%, transparent); margin-top: .4rem; }
+
+  /* FILLBTN — near-black ink disc grows from the cursor, text flips light */
+  .band-btn {
+    position: relative; isolation: isolate; overflow: hidden;
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+    background: var(--accent-contrast); color: var(--accent);
+    font-weight: 700; text-decoration: none; min-height: 44px;
+    padding: .9rem 1.6rem; border-radius: calc(var(--radius) - 4px);
+    transition: transform .3s var(--ease), box-shadow .3s var(--ease), color .35s var(--ease);
+  }
+  .band-btn::before {
+    content: ""; position: absolute; z-index: -1; top: var(--y, 50%); left: var(--x, 50%);
+    width: 0; height: 0; border-radius: 50%; background: var(--bg);
+    transform: translate(-50%, -50%); transition: width .5s var(--ease), height .5s var(--ease);
+  }
+  .band-btn svg { width: 1.1rem; height: 1.1rem; display: block; fill: none; stroke: currentColor;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .band-btn:focus-visible { outline-color: var(--accent-contrast); }
+
+  @media (hover: hover) and (pointer: fine) {
+    .band-btn:hover { color: var(--fg); transform: translateY(-2px);
+      box-shadow: 0 10px 26px var(--shadow-color); }
+    .band-btn:hover::before { width: 340px; height: 340px; }
+  }
+
+  /* REVEAL — rise + fade cascade on enter (hidden state only under html.wf-js) */
+  :global(.wf-js) .wf-rev { opacity: 0; transform: translateY(22px);
+    transition: opacity .7s var(--ease), transform .8s var(--easeBack); transition-delay: var(--d, 0s); }
+  :global(.wf-js) .wf-rev.is-in { opacity: 1; transform: none; }
+
+  @media (max-width: 560px) {
+    .band { flex-direction: column; align-items: stretch; padding: 1.4rem; gap: .9rem; }
+    .band__txt { flex: none; width: 100%; }
+    .band__txt p { margin-top: .25rem; }
+    .band-btn { width: 100%; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .band-btn { transition: none; }
+    .band-btn::before { display: none; } /* no animated fill */
+    :global(.wf-js) .wf-rev { opacity: 1 !important; transform: none !important; transition: none; }
+  }
+</style>
+
+<script>
+  document.documentElement.classList.add("wf-js");
+  (function () {
+    const reduce = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+    const fine = window.matchMedia("(hover:hover) and (pointer:fine)").matches;
+
+    document.querySelectorAll<HTMLElement>(".ti-ctaband").forEach((root) => {
+      /* REVEAL — cascade on enter */
+      const els: Element[] = Array.from(root.querySelectorAll(".wf-rev"));
+      if (reduce || !("IntersectionObserver" in window)) {
+        els.forEach((el) => el.classList.add("is-in"));
+      } else {
+        const io = new IntersectionObserver((entries, obs) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) { e.target.classList.add("is-in"); obs.unobserve(e.target); }
+          });
+        }, { threshold: 0.2 });
+        els.forEach((el) => io.observe(el));
+      }
+
+      /* FILLBTN — set --x/--y at the exact cursor point (fine pointer, no reduced-motion) */
+      if (!fine || reduce) return;
+      root.querySelectorAll<HTMLElement>(".band-btn").forEach((btn) => {
+        const pos = (e: MouseEvent) => {
+          const r = btn.getBoundingClientRect();
+          btn.style.setProperty("--x", e.clientX - r.left + "px");
+          btn.style.setProperty("--y", e.clientY - r.top + "px");
+        };
+        btn.addEventListener("mouseenter", pos);
+        btn.addEventListener("mousemove", pos);
+      });
+    });
+  })();
+</script>

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- lib:meta -->
+<meta name="lib:id" content="heros_hero-diced-grid">
+<meta name="lib:groupe" content="01-header">
+<meta name="lib:categorie" content="heros">
+<meta name="lib:intention" content="ouverture-captation">
+<meta name="lib:placement" content="section">
+<meta name="lib:niveau" content="2">
+<meta name="lib:titre" content="Texte + grille 2×2 à coins entaillés">
+<meta name="lib:tags" content="JS natif, mask, grille, cascade">
+<meta name="lib:utilite" content="Split éditorial : titre dégradé, trait animé et bouton à texte basculant, face à une grille 2×2 d'images aux coins entaillés (mask-composite) pointant vers le centre, avec tuiles qui montent en cascade (ressort) à l'arrivée. Boutiques, food, lifestyle. JS natif.">
+<meta name="lib:showcase" content="non">
+<meta name="lib:secteurs" content="polyvalent">
+<meta name="lib:slots" content="titre:titre:court; accroche:texte:moyen; cta:cta:1-2; visuel:media:4; logo:media:1">
+<meta name="lib:anatomie" content="base:4 images, 1 logo centre, 1 surtitre, 1 titre, 1 sous-titre, 1 bouton; logo:badge blanc rectangulaire aux coins arrondis au centre du vide en croix des tuiles, accueille le logo du client (placeholder Logo), pop d entree; surtitre:petit eyebrow en majuscules; titre:H1 (clamp 2.6 à 4.5rem), un mot en dégradé clip-text; trait:barre sous le titre qui s'étire depuis 0; sous-titre:paragraphe d'intro, largeur max 46 caractères; cta:1 bouton à texte basculant (flip vertical au survol); images:grille 2×2 (4 visuels) aux coins entaillés (mask-composite) pointant vers le centre, arrondis 20px, placeholder de dimensions centré via placehold.co (fond de secours porté par l image donc masqué avec la forme diced); animation:texte en cascade + tuiles qui montent avec léger ressort à l'arrivée; responsive:passe en colonne sous 1000px (titre/texte au-dessus, puis images, puis CTA sous les images via display:contents + order)">
+<!-- /lib:meta -->
+<title>Texte + grille 2×2 à coins entaillés</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&display=swap" rel="stylesheet">
+
+<!-- ==========================================================================
+     STYLE — Hero 20 · Diced (grille d'images masquées + bouton flip)
+     Re-skin rapide : modifie uniquement le bloc :root (section 1).
+     Masques « diced » (mask-composite), bouton flip et entrées en CSS pur.
+     ========================================================================== -->
+<style>
+  /* --- 1. TOKENS ---------------------------------------------------------- */
+  :root{
+    --bg:#ffffff;
+    --fg:#101014;
+    --top:#6c6c74;               /* surtitre */
+    --grad-from:#101014;         /* titre dégradé (début) */
+    --grad-to:#6c6c74;           /* titre dégradé (fin)   */
+    --separator:#101014;         /* trait sous le titre   */
+    --sub:#5b5b63;               /* paragraphe            */
+    --btn-bg:#101014;
+    --btn-fg:#ffffff;
+    --btn-hover-bg:#2c2c32;
+    --btn-hover-fg:#ffffff;
+    --radius:20px;               /* arrondi des tuiles    */
+    --font:"Outfit",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --maxw:1536px;
+  }
+
+  /* --- 2. RESET ----------------------------------------------------------- */
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  img{display:block;max-width:100%}
+
+  /* --- 3. LAYOUT ---------------------------------------------------------- */
+  .diced{
+    width:100%;max-width:var(--maxw);margin:0 auto;padding:2rem;
+    background:var(--bg);color:var(--fg);font-family:var(--font);overflow:hidden;
+    display:flex;flex-direction:row;align-items:stretch;justify-content:center;gap:2rem;
+  }
+  .diced__text{
+    flex:1;max-width:50%;
+    display:flex;flex-direction:column;justify-content:center;
+  }
+  .diced__media{
+    flex:1;width:50%;display:flex;align-items:center;
+  }
+
+  /* --- 4. TYPOGRAPHIE ----------------------------------------------------- */
+  .diced__top{
+    font-size:.95rem;font-weight:500;letter-spacing:.04em;
+    text-transform:uppercase;color:var(--top);
+  }
+  .diced__title{
+    margin-top:.5rem;font-weight:800;line-height:1.04;letter-spacing:-.02em;
+    font-size:clamp(2.6rem,6vw,4.5rem);
+  }
+  .diced__title span{
+    display:inline-block;
+    background:linear-gradient(45deg,var(--grad-from),var(--grad-to));
+    -webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;color:transparent;
+  }
+  .diced__sep{
+    height:.25rem;width:6.25rem;background:var(--separator);border:none;
+    margin:1.125rem 0 1.875rem;
+  }
+  .diced__sub{
+    font-size:1.05rem;line-height:1.6;color:var(--sub);max-width:46ch;
+  }
+
+  /* --- 5. BOUTON FLIP (ex-ChronicleButton) -------------------------------- */
+  .diced__cta-wrap{margin-top:1.6rem;display:flex}
+  .chronicle{
+    --ch-bg:var(--btn-bg);--ch-fg:var(--btn-fg);
+    --ch-hover-bg:var(--btn-hover-bg);--ch-hover-fg:var(--btn-hover-fg);
+    display:flex;flex-direction:column;align-items:center;overflow:hidden;
+    line-height:1;padding:1rem 1.5rem;cursor:pointer;border:none;
+    font-family:inherit;font-weight:700;border-radius:2rem;min-width:160px;
+    background:var(--ch-bg);color:var(--ch-fg);
+    transition:background .4s linear,color .4s linear;will-change:background,color;
+  }
+  .chronicle:hover{background:var(--ch-hover-bg);color:var(--ch-hover-fg)}
+  .chronicle span{position:relative;display:block;perspective:108px}
+  .chronicle span:nth-of-type(2){position:absolute}
+  .chronicle em{
+    font-style:normal;display:inline-block;font-size:1.025rem;color:inherit;
+    will-change:transform,opacity,color;
+    transition:transform .55s cubic-bezier(.645,.045,.355,1),opacity .35s linear .2s,color .4s linear;
+  }
+  .chronicle span:nth-of-type(1) em{transform-origin:top}
+  .chronicle span:nth-of-type(2) em{
+    opacity:0;transform:rotateX(-90deg) scaleX(.9) translate3d(0,10px,0);transform-origin:bottom;
+  }
+  .chronicle:hover span:nth-of-type(1) em{opacity:0;transform:rotateX(90deg) scaleX(.9) translate3d(0,-10px,0)}
+  .chronicle:hover span:nth-of-type(2) em{
+    opacity:1;transform:rotateX(0deg) scaleX(1) translateZ(0);
+    transition:transform .75s cubic-bezier(.645,.045,.355,1),opacity .35s linear .3s,color .4s linear;
+  }
+
+  /* --- 6. GRILLE D'IMAGES « DICED » --------------------------------------- */
+  .diced__grid{
+    display:grid;grid-template-columns:repeat(2,1fr);gap:20px;
+    width:100%;aspect-ratio:1/1;position:relative;
+  }
+  /* logo centré dans le vide en croix des tuiles (badge blanc rond) */
+  .diced__logo{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2;
+    width:clamp(6rem,26%,10rem);aspect-ratio:4/3;border-radius:1rem;overflow:hidden;
+    background:#fff;box-shadow:0 10px 26px -10px rgba(0,0,0,.4);
+    display:grid;place-items:center;
+  }
+  .diced__logo img{width:100%;height:100%;object-fit:contain;object-position:center}
+  @keyframes logoPop{from{opacity:0;transform:translate(-50%,-50%) scale(.5)}
+                     to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+  .diced__logo{animation:logoPop .7s cubic-bezier(.34,1.56,.64,1) .85s backwards}
+  .diced__cell{position:relative;width:100%;padding-bottom:100%;overflow:hidden;border-radius:var(--radius)}
+  /* Placeholder : MÊME masque que l'image (classe warped-image + coin) → label
+     centré + fond gris DANS la forme diced. Couvert dès qu'une vraie image charge. */
+  .diced__ph{position:absolute;inset:0;z-index:0;
+    display:grid;place-items:center;
+    background:#e6e6e6;color:#9a9aa2;font-weight:600;letter-spacing:.02em;
+    font-size:clamp(1rem,1.6vw,1.35rem)}
+  .diced__cell img{
+    position:absolute;inset:0;width:100%;height:100%;object-fit:cover;cursor:pointer;z-index:1;
+  }
+  /* masques à coin entaillé — l'entaille pointe vers le centre de la grille */
+  .warped-image{--r:20px;--s:40px;--x:25px;--y:5px}
+  .top-right{
+    --_m:/calc(2*var(--r)) calc(2*var(--r)) radial-gradient(#000 70%,#0000 72%);
+    --_g:conic-gradient(at calc(100% - var(--r)) var(--r),#0000 25%,#000 0);
+    --_d:(var(--s) + var(--r));
+    -webkit-mask:calc(100% - var(--_d) - var(--x)) 0 var(--_m),100% calc(var(--_d) + var(--y)) var(--_m),radial-gradient(var(--s) at 100% 0,#0000 99%,#000 calc(100% + 1px)) calc(-1*var(--r) - var(--x)) calc(var(--r) + var(--y)),var(--_g) calc(-1*var(--_d) - var(--x)) 0,var(--_g) 0 calc(var(--_d) + var(--y));
+    mask:calc(100% - var(--_d) - var(--x)) 0 var(--_m),100% calc(var(--_d) + var(--y)) var(--_m),radial-gradient(var(--s) at 100% 0,#0000 99%,#000 calc(100% + 1px)) calc(-1*var(--r) - var(--x)) calc(var(--r) + var(--y)),var(--_g) calc(-1*var(--_d) - var(--x)) 0,var(--_g) 0 calc(var(--_d) + var(--y));
+    -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
+  }
+  .top-left{
+    --_m:/calc(2*var(--r)) calc(2*var(--r)) radial-gradient(#000 70%,#0000 72%);
+    --_g:conic-gradient(at var(--r) var(--r),#000 75%,#0000 0);
+    --_d:(var(--s) + var(--r));
+    -webkit-mask:calc(var(--_d) + var(--x)) 0 var(--_m),0 calc(var(--_d) + var(--y)) var(--_m),radial-gradient(var(--s) at 0 0,#0000 99%,#000 calc(100% + 1px)) calc(var(--r) + var(--x)) calc(var(--r) + var(--y)),var(--_g) calc(var(--_d) + var(--x)) 0,var(--_g) 0 calc(var(--_d) + var(--y));
+    mask:calc(var(--_d) + var(--x)) 0 var(--_m),0 calc(var(--_d) + var(--y)) var(--_m),radial-gradient(var(--s) at 0 0,#0000 99%,#000 calc(100% + 1px)) calc(var(--r) + var(--x)) calc(var(--r) + var(--y)),var(--_g) calc(var(--_d) + var(--x)) 0,var(--_g) 0 calc(var(--_d) + var(--y));
+    -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
+  }
+  .bottom-left{
+    --_m:/calc(2*var(--r)) calc(2*var(--r)) radial-gradient(#000 70%,#0000 72%);
+    --_g:conic-gradient(from 180deg at var(--r) calc(100% - var(--r)),#0000 25%,#000 0);
+    --_d:(var(--s) + var(--r));
+    -webkit-mask:calc(var(--_d) + var(--x)) 100% var(--_m),0 calc(100% - var(--_d) - var(--y)) var(--_m),radial-gradient(var(--s) at 0 100%,#0000 99%,#000 calc(100% + 1px)) calc(var(--r) + var(--x)) calc(-1*var(--r) - var(--y)),var(--_g) calc(var(--_d) + var(--x)) 0,var(--_g) 0 calc(-1*var(--_d) - var(--y));
+    mask:calc(var(--_d) + var(--x)) 100% var(--_m),0 calc(100% - var(--_d) - var(--y)) var(--_m),radial-gradient(var(--s) at 0 100%,#0000 99%,#000 calc(100% + 1px)) calc(var(--r) + var(--x)) calc(-1*var(--r) - var(--y)),var(--_g) calc(var(--_d) + var(--x)) 0,var(--_g) 0 calc(-1*var(--_d) - var(--y));
+    -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
+  }
+  .bottom-right{
+    --_m:/calc(2*var(--r)) calc(2*var(--r)) radial-gradient(#000 70%,#0000 72%);
+    --_g:conic-gradient(from 90deg at calc(100% - var(--r)) calc(100% - var(--r)),#0000 25%,#000 0);
+    --_d:(var(--s) + var(--r));
+    -webkit-mask:calc(100% - var(--_d) - var(--x)) 100% var(--_m),100% calc(100% - var(--_d) - var(--y)) var(--_m),radial-gradient(var(--s) at 100% 100%,#0000 99%,#000 calc(100% + 1px)) calc(-1*var(--r) - var(--x)) calc(-1*var(--r) - var(--y)),var(--_g) calc(-1*var(--_d) - var(--x)) 0,var(--_g) 0 calc(-1*var(--_d) - var(--y));
+    mask:calc(100% - var(--_d) - var(--x)) 100% var(--_m),100% calc(100% - var(--_d) - var(--y)) var(--_m),radial-gradient(var(--s) at 100% 100%,#0000 99%,#000 calc(100% + 1px)) calc(-1*var(--r) - var(--x)) calc(-1*var(--r) - var(--y)),var(--_g) calc(-1*var(--_d) - var(--x)) 0,var(--_g) 0 calc(-1*var(--_d) - var(--y));
+    -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
+  }
+
+  /* --- 7. ENTRÉES (ex-framer-motion) -------------------------------------- */
+  @keyframes d20-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes d20-line{from{width:0}to{width:6.25rem}}
+  .diced__top{animation:d20-up .5s ease both}
+  .diced__title{animation:d20-up .5s ease .1s both}
+  .diced__sep{animation:d20-line .5s ease .2s both}
+  .diced__sub{animation:d20-up .5s ease .3s both}
+  .diced__cta-wrap{animation:d20-up .5s ease .4s both}
+
+  /* Effet J — les tuiles images montent en cascade avec un léger ressort à l'arrivée.
+     `backwards` (jamais `forwards`) : au repos, le transform revient à sa valeur d'auteur,
+     ne bloque donc rien pour les masques/hover. */
+  @keyframes fxRise{from{opacity:0;transform:translateY(70px) scale(.94)}to{opacity:1;transform:none}}
+  .diced__cell{animation:fxRise .9s cubic-bezier(.34,1.56,.64,1) backwards}
+  .diced__cell:nth-child(1){animation-delay:.28s}
+  .diced__cell:nth-child(2){animation-delay:.40s}
+  .diced__cell:nth-child(3){animation-delay:.52s}
+  .diced__cell:nth-child(4){animation-delay:.64s}
+
+  /* --- 8. RESPONSIVE ------------------------------------------------------ */
+  @media (max-width:1000px){
+    .diced{flex-direction:column;align-items:center;gap:0;text-align:center}
+    /* on aplatit la colonne texte : ses enfants deviennent enfants directs de
+       .diced → on peut réordonner le CTA APRÈS les images via order */
+    .diced__text{display:contents}
+    .diced__sep{margin-inline:auto}
+    .diced__sub{text-align:center;margin-bottom:1.6rem}
+    .diced__media{width:100%;order:1}                    /* images avant le CTA */
+    .diced__cta-wrap{justify-content:center;order:2}     /* CTA sous les images */
+  }
+  /* Petits écrans : espaces trop grands → gap, entailles et arrondis resserrés */
+  @media (max-width:600px){
+    .diced__grid{gap:12px}
+    .diced__cell{border-radius:14px}
+    .warped-image{--r:14px;--s:24px;--x:14px;--y:4px}
+    .diced__logo{width:clamp(4.5rem,30%,7rem);border-radius:.8rem;padding:0}
+  }
+
+  /* --- 9. ACCESSIBILITÉ --------------------------------------------------- */
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+    .diced__sep{width:6.25rem}
+    /* Effet J neutralisé : tuiles visibles et sans transform au repos */
+    .diced__cell{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- ==========================================================================
+     STRUCTURE — contenu à personnaliser
+     ========================================================================== -->
+<section class="diced">
+
+  <!-- Colonne texte -->
+  <div class="diced__text">
+    <span class="diced__top">Surtitre · catégorie</span>
+    <h1 class="diced__title" data-slot="titre"><span>Titre court.</span></h1>
+    <hr class="diced__sep">
+    <p class="diced__sub" data-slot="accroche">
+      Quelques lignes d'introduction, neutres et concises, pour préciser
+      l'intention et poser le contexte sans en dire trop sur la sélection
+      mise en avant.
+    </p>
+    <div class="diced__cta-wrap">
+      <button class="chronicle" type="button" data-slot="cta">
+        <span><em>Découvrir</em></span>
+        <span><em>Découvrir</em></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Colonne grille « diced » — 4 images FIXES positionnées par classe
+       (top-left/bottom-right…). Pattern « remplir sur place » : conteneur
+       data-slot + 1 data-field="image" par <img>, l'injecteur remplit chaque
+       src/alt sans cloner (sinon les positions sont perdues). -->
+  <div class="diced__media">
+    <div class="diced__grid" data-slot="visuel">
+      <div class="diced__cell">
+        <div class="warped-image bottom-right diced__ph" aria-hidden="true">600 × 600</div>
+        <img class="warped-image bottom-right" src="https://placehold.co/600x600" alt="Visuel 1" data-field="image">
+      </div>
+      <div class="diced__cell">
+        <div class="warped-image bottom-left diced__ph" aria-hidden="true">600 × 600</div>
+        <img class="warped-image bottom-left" src="https://placehold.co/600x600" alt="Visuel 2" data-field="image">
+      </div>
+      <div class="diced__cell">
+        <div class="warped-image top-right diced__ph" aria-hidden="true">600 × 600</div>
+        <img class="warped-image top-right" src="https://placehold.co/600x600" alt="Visuel 3" data-field="image">
+      </div>
+      <div class="diced__cell">
+        <div class="warped-image top-left diced__ph" aria-hidden="true">600 × 600</div>
+        <img class="warped-image top-left" src="https://placehold.co/600x600" alt="Visuel 4" data-field="image">
+      </div>
+
+      <!-- logo centré (badge blanc) — remplacez par le logo du client (PNG transparent) -->
+      <div class="diced__logo" data-slot="logo">
+        <img src="https://placehold.co/200x200?text=Logo" alt="Logo" data-field="logo">
+      </div>
+    </div>
+  </div>
+
+</section>
+
+</body>
+</html>

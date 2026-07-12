@@ -1,0 +1,127 @@
+---
+/**
+ * Integration — section `testimonials_testimonials-marquee` (normal section, not bleed).
+ * Phase 2 rules applied:
+ *   1. Local :root tokens, reset, Google-Fonts markup removed → inherited from base.
+ *   2. `min-height:100dvh` + internal padding-block removed → base `--section-y` rhythm.
+ *   3. Hard-coded colors → tokens; avatar photos (placeholders) replaced by an
+ *      initial badge on the brand gradient --accent→--accent-2 (DM quotes have no
+ *      photos); guillemets « » → English curly quotes in accent pink.
+ *   4. Eyebrow removed (typographic sobriety rule).
+ *   5. Real review quotes translated from Ukrainian Instagram DMs; rows are built
+ *      from the `quotes` prop (split in two), each row duplicated once
+ *      (aria-hidden clone wrapped in .row__seq) for a seamless translateX(-50%) loop.
+ *   6. Pure CSS (no JS). Marquee pauses on hover; reduced-motion falls back to a
+ *      plain scrollable row.
+ */
+export interface Props {
+  title?: string;
+  sub?: string;
+  quotes?: { quote: string; name: string }[];
+}
+const {
+  title = "Love letters from our DMs",
+  sub = "Real messages from real customers — translated from our Instagram inbox, mess and all.",
+  quotes = [
+    { quote: "While we were painting I honestly caught such a vibe. And delivery was crazy fast — separate respect.", name: "Anna" },
+    { quote: "The t-shirts — WOW. The emotions — even more WOW. Can't wait for them to dry so we can wear them!", name: "Katya & Dima" },
+    { quote: "Thank you for these tees — we're loving every emotion.", name: "Kate" },
+    { quote: "Everything you need is in the box. We finished our painting in one evening.", name: "Marta" },
+    { quote: "Ordered it as a gift for my boyfriend — he was absolutely delighted.", name: "Sofia" },
+    { quote: "The paint washed right off our skin but stays so vivid on the canvas.", name: "Olena" },
+    { quote: "Cute packaging, sweets inside, fast shipping — 10/10.", name: "Ira" },
+    { quote: "It's not just a gift. It's a memory we made together.", name: "Yuliia" },
+  ],
+} = Astro.props;
+
+/* Split the quotes across the two rows (both rows show everything if only one quote). */
+const half = Math.ceil(quotes.length / 2);
+const rows = quotes.length > 1 ? [quotes.slice(0, half), quotes.slice(half)] : [quotes, quotes];
+---
+
+<section class="ti-marquee">
+  <header class="tm__head">
+    <h2 class="tm__title" data-slot="titre">{title}</h2>
+    {sub && <p class="tm__sub">{sub}</p>}
+  </header>
+
+  {rows.map((row, r) => (
+    <div
+      class={r === 0 ? "row" : "row row--rev"}
+      aria-label={r === 0 ? "Customer reviews, auto-scrolling" : "Customer reviews, auto-scrolling (reverse)"}
+      data-slot={r === 0 ? "avis" : undefined}
+    >
+      <div class="row__track">
+        {[0, 1].map((copy) => (
+          <div class="row__seq" aria-hidden={copy === 1 ? "true" : undefined}>
+            {row.map((q) => (
+              <article class="card" data-slot-item={copy === 0 && r === 0 ? "" : undefined}>
+                <p class="card__quote" data-field="citation">{q.quote}</p>
+                <div class="card__person">
+                  <span class="card__initial" aria-hidden="true">{q.name.charAt(0)}</span>
+                  <div>
+                    <p class="card__name" data-field="nom">{q.name}</p>
+                    <p class="card__role" data-field="role">via Instagram DM</p>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  ))}
+</section>
+
+<style>
+  .ti-marquee {
+    --speed-1: 55s; /* row 1 scroll speed */
+    --speed-2: 70s; /* row 2, slightly slower */
+    display: flex; flex-direction: column; gap: 2rem;
+    overflow: hidden; color: var(--fg);
+  }
+  .tm__head { max-width: var(--container); margin-inline: auto; padding-inline: var(--gutter); text-align: center; }
+  .tm__title { font-size: clamp(2rem, 4.4vw, 3rem); font-weight: 800; line-height: 1.08; letter-spacing: -.02em; margin-bottom: 1rem; }
+  .tm__sub { font-size: 1.05rem; line-height: 1.65; color: var(--muted); max-width: 42rem; margin-inline: auto; }
+
+  /* scrolling row (soft fade mask at both ends) --------------------------- */
+  .row {
+    display: flex; overflow: hidden;
+    -webkit-mask: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+            mask: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  }
+  .row__track { display: flex; flex: 0 0 auto; animation: ti-marq-scroll var(--speed-1) linear infinite; }
+  /* each half carries its own trailing gap so translateX(-50%) loops seamlessly */
+  .row__seq { display: flex; flex: 0 0 auto; gap: 1.4rem; padding-right: 1.4rem; }
+  .row--rev .row__track { animation-name: ti-marq-scroll-rev; animation-duration: var(--speed-2); }
+  @keyframes ti-marq-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @keyframes ti-marq-scroll-rev { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+  .row:hover .row__track { animation-play-state: paused; }
+
+  /* review card ------------------------------------------------------------ */
+  .card {
+    flex: 0 0 22rem; background: var(--surface);
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 1.5rem;
+    display: flex; flex-direction: column; gap: 1rem; justify-content: space-between;
+    text-align: left;
+  }
+  @media (max-width: 520px) { .card { flex: 0 0 18rem; padding: 1.3rem; } }
+  .card__quote { font-size: .98rem; line-height: 1.6; letter-spacing: -.005em; }
+  .card__quote::before { content: "\201C\2009"; color: var(--accent); font-weight: 700; }
+  .card__quote::after  { content: "\2009\201D"; color: var(--accent); font-weight: 700; }
+  .card__person { display: flex; align-items: center; gap: .8rem; border-top: 1px solid var(--line); padding-top: .9rem; }
+  .card__initial {
+    width: 2.4rem; height: 2.4rem; border-radius: 50%; flex: 0 0 auto;
+    display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: var(--accent-contrast); font-weight: 700; font-size: .95rem;
+  }
+  .card__name { font-weight: 600; font-size: .92rem; }
+  .card__role { color: var(--muted); font-size: .8rem; }
+
+  /* accessibility: no marquee under reduced motion ------------------------- */
+  @media (prefers-reduced-motion: reduce) {
+    .row__track { animation: none !important; }
+    .row { -webkit-mask: none; mask: none; overflow-x: auto; }
+  }
+</style>

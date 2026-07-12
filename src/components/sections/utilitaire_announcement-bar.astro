@@ -1,0 +1,107 @@
+---
+/**
+ * Integration — section `utilitaire_announcement-bar` (placement: header slot,
+ * ABOVE the navbar). Phase 2 rules applied:
+ *   1. Local :root tokens + reset + demo page + Google-Fonts removed.
+ *   2. Root element = <div> (utility bar, static — scrolls away, not fixed).
+ *   3. Hard-coded accent → subtle brand gradient pink→cyan mixed into --bg,
+ *      text/controls on tokens.
+ *   4. Dismiss remembered in localStorage (key = prop, bump it to replay a
+ *      new announcement); JS scoped via querySelectorAll(".ti-ann").forEach —
+ *      safe with 0..n instances, no ids.
+ */
+export interface Props {
+  message?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+  /** localStorage key remembering the dismiss — change it to show a new announcement again. */
+  storageKey?: string;
+}
+const {
+  message = "Free worldwide shipping — every box hides a scratch-card discount 🎁",
+  ctaLabel = "Shop the kits →",
+  ctaHref = "/kits/",
+  storageKey = "ti-ann-v2",
+} = Astro.props;
+---
+
+<div class="ti-ann" role="region" aria-label="Announcement" data-key={storageKey}>
+  <div class="ann__in">
+    <span class="msg">
+      {message}
+      <a href={ctaHref}>{ctaLabel}</a>
+    </span>
+    <button class="close" type="button" aria-label="Dismiss announcement">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+</div>
+
+<style>
+  .ti-ann {
+    --ease: cubic-bezier(.16, 1, .3, 1);
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--accent) 28%, var(--bg)),
+      color-mix(in srgb, var(--accent-2) 24%, var(--bg))
+    );
+    color: var(--fg);
+    overflow: hidden;
+    max-height: 6rem;
+    transition: max-height .35s var(--ease), opacity .35s;
+  }
+  .ti-ann.hide { max-height: 0; opacity: 0; }
+  .ti-ann.no-anim { transition: none; }
+
+  .ann__in {
+    max-width: var(--container); margin: 0 auto;
+    padding: .6rem var(--gutter);
+    display: flex; align-items: center; justify-content: center; gap: 1rem;
+    font-size: .9rem; font-weight: 500; line-height: 1.45; text-align: center;
+  }
+  .msg { min-width: 0; }
+  .msg a {
+    color: inherit; font-weight: 700; white-space: nowrap; margin-left: .35em;
+    text-decoration: underline; text-underline-offset: 3px;
+    text-decoration-color: var(--accent-2);
+  }
+  .msg a:hover { text-decoration-color: currentColor; }
+
+  .close {
+    flex: 0 0 auto; width: 1.8rem; height: 1.8rem; border-radius: 50%;
+    background: none; border: 0; cursor: pointer; color: inherit;
+    opacity: .8; display: grid; place-items: center; transition: opacity .2s, background .2s;
+  }
+  .close svg { width: 1.05rem; height: 1.05rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+  @media (hover: hover) and (pointer: fine) {
+    .close:hover { opacity: 1; background: color-mix(in srgb, var(--fg) 10%, transparent); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ti-ann, .close { transition: none; }
+  }
+</style>
+
+<script>
+  (function () {
+    document.querySelectorAll<HTMLElement>(".ti-ann").forEach((bar) => {
+      const key = bar.getAttribute("data-key") || "ti-ann-v1";
+
+      /* Already dismissed on this device → hide without animating (no flash). */
+      let closed = false;
+      try { closed = localStorage.getItem(key) === "1"; } catch (e) { /* private mode */ }
+      if (closed) {
+        bar.classList.add("no-anim", "hide");
+        requestAnimationFrame(() => requestAnimationFrame(() => bar.classList.remove("no-anim")));
+      }
+
+      const close = bar.querySelector<HTMLButtonElement>(".close");
+      if (close) {
+        close.addEventListener("click", () => {
+          bar.classList.add("hide");
+          try { localStorage.setItem(key, "1"); } catch (e) { /* private mode */ }
+        });
+      }
+    });
+  })();
+</script>

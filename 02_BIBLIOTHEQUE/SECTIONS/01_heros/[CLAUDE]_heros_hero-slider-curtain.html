@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- lib:meta -->
+<meta name="lib:id" content="heros_hero-slider-curtain">
+<meta name="lib:groupe" content="01-header">
+<meta name="lib:categorie" content="heros">
+<meta name="lib:intention" content="ouverture-captation">
+<meta name="lib:placement" content="section">
+<meta name="lib:niveau" content="2">
+<meta name="lib:auteur" content="CLAUDE (généré sur demande)">
+<meta name="lib:titre" content="Slider rideau (clip-path) + grand numéro">
+<meta name="lib:tags" content="JS natif, slider, clip-path, rideau, wipe, index géant, autoplay, wow">
+<meta name="lib:utilite" content="Slider plein écran où chaque photo se DÉVOILE par un volet (clip-path) qui balaie l'écran, par-dessus la précédente. Un grand numéro d'index (01, 02, 03) en filigrane change à chaque slide, avec le contenu (surtitre, titre, sous-titre, CTA) qui monte en cascade. Léger Ken Burns sur l'image active. Flèches, dots, drag/clavier, autoplay. Registre éditorial/mode/architecture. JS natif, photos à remplacer.">
+<meta name="lib:showcase" content="oui">
+<meta name="lib:secteurs" content="polyvalent">
+<meta name="lib:slots" content="slides:liste:2-6">
+<meta name="lib:anatomie" content="base:3 slides plein écran, chacune 1 image de fond, 1 surtitre, 1 titre, 1 sous-titre, 1 bouton, 1 grand numero; slides:images superposees, la nouvelle se revele par un volet clip-path qui balaie de la droite vers la gauche par-dessus la precedente; image:leger zoom Ken Burns sur l active, voile degrade pour lisibilite; numero:grand index en filigrane (01 02 03) en haut a droite, change a chaque slide; contenu:surtitre titre sous-titre CTA en bas a gauche, montent en cascade a chaque arrivee; controles:2 fleches, dots (actif allonge), compteur; animation:balayage clip-path, ken-burns, cascade du contenu, bascule du numero; navigation:autoplay 6s en pause au survol, fleches, dots, drag/swipe, clavier; responsive:numero et paddings reduits, fleches masquees sous 640px; a11y:aria-live compteur, reduced-motion remplace le volet par un fondu instantane et coupe ken-burns/cascade">
+<!-- /lib:meta -->
+<title>Slider rideau (clip-path) + grand numéro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<!-- ==========================================================================
+     STYLE — Hero slider · Rideau clip-path + grand numéro
+     La slide entrante balaie par-dessus la précédente (clip-path). JS natif.
+     ========================================================================== -->
+<style>
+  :root{
+    --fg:#f6f5f2;--muted:rgba(246,245,242,.82);--accent:#d8654b;
+    --font:"Outfit",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --ease:cubic-bezier(.76,0,.24,1);--gutter:clamp(1.4rem,5vw,4.5rem);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  a{text-decoration:none;color:inherit}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  body{font-family:var(--font);background:#0c0c0e}
+
+  .cur{position:relative;height:100vh;height:100dvh;overflow:hidden;background:#0c0c0e;color:var(--fg);
+    user-select:none;touch-action:pan-y}
+
+  /* slides : la nouvelle se révèle par un volet (clip-path) */
+  .cur__slide{position:absolute;inset:0;clip-path:inset(0 0 0 100%);z-index:0}
+  .cur__slide.is-on{clip-path:inset(0 0 0 0);z-index:1;transition:clip-path .85s var(--ease)}
+  .cur__slide.is-out{z-index:0}
+  .cur__img{position:absolute;inset:0;background-size:cover;background-position:center;transform:scale(1.12)}
+  .cur__slide.is-on .cur__img{transform:scale(1);transition:transform 6.5s linear}
+  .cur__veil{position:absolute;inset:0;
+    background:linear-gradient(90deg,rgba(10,10,12,.68) 0%,rgba(10,10,12,.2) 55%,transparent 100%),
+               linear-gradient(180deg,transparent 50%,rgba(10,10,12,.7) 100%)}
+
+  /* grand numéro d'index */
+  .cur__num{position:absolute;top:clamp(1.5rem,5vh,3.5rem);right:var(--gutter);z-index:4;
+    font-size:clamp(5rem,16vw,13rem);font-weight:900;line-height:.8;letter-spacing:-.04em;
+    color:transparent;-webkit-text-stroke:1.5px rgba(246,245,242,.35);pointer-events:none}
+
+  .cur__inner{position:relative;z-index:3;height:100%;max-width:1360px;margin:0 auto;
+    padding:0 var(--gutter) clamp(4rem,10vh,7rem);display:flex;flex-direction:column;justify-content:flex-end}
+  .cur__content{max-width:40rem}
+  .cur__slide .cur__eyebrow,.cur__slide .cur__title,.cur__slide .cur__sub,.cur__slide .cur__cta{opacity:0;transform:translateY(26px)}
+  @keyframes rise{to{opacity:1;transform:none}}
+  .cur__slide.is-on .cur__eyebrow{animation:rise .8s var(--ease) .45s forwards}
+  .cur__slide.is-on .cur__title{animation:rise .85s var(--ease) .55s forwards}
+  .cur__slide.is-on .cur__sub{animation:rise .85s var(--ease) .68s forwards}
+  .cur__slide.is-on .cur__cta{animation:rise .85s var(--ease) .8s forwards}
+
+  .cur__eyebrow{font-size:.82rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:1.1rem}
+  .cur__title{font-size:clamp(2.4rem,6vw,4.6rem);font-weight:800;line-height:1.04;letter-spacing:-.025em}
+  .cur__sub{margin-top:1.2rem;font-size:clamp(1rem,1.4vw,1.2rem);line-height:1.6;color:var(--muted);max-width:34rem}
+  .cur__cta{margin-top:2rem;display:inline-flex;align-items:center;gap:.6rem;
+    border:1px solid rgba(246,245,242,.6);color:#fff;font-weight:600;padding:.9rem 1.5rem;border-radius:2rem;
+    transition:background .25s,color .25s}
+  .cur__cta svg{width:1.05rem;height:1.05rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  @media (hover:hover) and (pointer:fine){.cur__cta:hover{background:#fff;color:#111;border-color:#fff}}
+
+  .cur__arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:5;
+    width:3rem;height:3rem;border-radius:50%;display:grid;place-items:center;
+    background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.32);color:#fff;backdrop-filter:blur(8px);
+    transition:background .2s,color .2s}
+  .cur__arrow:hover{background:#fff;color:#111}
+  .cur__arrow svg{width:1.1rem;height:1.1rem;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+  .cur__arrow--prev{left:clamp(.8rem,2vw,1.6rem)}.cur__arrow--next{right:clamp(.8rem,2vw,1.6rem)}
+  .cur__dots{position:absolute;left:var(--gutter);bottom:1.5rem;z-index:5;display:flex;gap:.5rem}
+  .cur__dot{width:22px;height:3px;border-radius:2px;background:rgba(255,255,255,.4);transition:.3s var(--ease)}
+  .cur__dot.is-on{background:#fff;width:42px}
+
+  @media (max-width:640px){.cur__arrow{display:none}.cur__num{font-size:22vw}}
+  :focus-visible{outline:2px solid #fff;outline-offset:3px;border-radius:.4rem}
+  @media (prefers-reduced-motion:reduce){
+    .cur__slide.is-on{transition:opacity .3s}
+    .cur__slide{clip-path:none;opacity:0}
+    .cur__slide.is-on{opacity:1}
+    .cur__slide.is-on .cur__img{transition:none;transform:none}
+    .cur__slide.is-on .cur__eyebrow,.cur__slide.is-on .cur__title,
+    .cur__slide.is-on .cur__sub,.cur__slide.is-on .cur__cta{animation:none;opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- ==========================================================================
+     STRUCTURE — dupliquez .cur__slide (image + contenu). Le script gère le
+     balayage clip-path, le numéro, les dots, flèches, drag.
+     ========================================================================== -->
+<section class="cur" id="cur" aria-roledescription="carrousel" data-slot="slides">
+
+  <article class="cur__slide is-on" data-slot-item>
+    <div class="cur__img" style="background-image:url('https://placehold.co/1920x1080?text=1')" data-field="image"></div>
+    <div class="cur__veil"></div>
+    <div class="cur__inner"><div class="cur__content">
+      <span class="cur__eyebrow" data-field="surtitre">Chapitre 01</span>
+      <h1 class="cur__title" data-field="titre">Le premier volet se lève.</h1>
+      <p class="cur__sub" data-field="accroche">Un sous-titre court pour poser le contexte en deux lignes.</p>
+      <a class="cur__cta" href="#" data-field="cta">En savoir plus
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </div></div>
+  </article>
+
+  <article class="cur__slide">
+    <div class="cur__img" style="background-image:url('https://placehold.co/1920x1080?text=2')"></div>
+    <div class="cur__veil"></div>
+    <div class="cur__inner"><div class="cur__content">
+      <span class="cur__eyebrow">Chapitre 02</span>
+      <h2 class="cur__title">Le deuxième balaie l'écran.</h2>
+      <p class="cur__sub">Texte de remplacement pour la deuxième diapositive.</p>
+      <a class="cur__cta" href="#">En savoir plus
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </div></div>
+  </article>
+
+  <article class="cur__slide">
+    <div class="cur__img" style="background-image:url('https://placehold.co/1920x1080?text=3')"></div>
+    <div class="cur__veil"></div>
+    <div class="cur__inner"><div class="cur__content">
+      <span class="cur__eyebrow">Chapitre 03</span>
+      <h2 class="cur__title">Et le troisième referme la scène.</h2>
+      <p class="cur__sub">Encore une diapositive de démonstration.</p>
+      <a class="cur__cta" href="#">En savoir plus
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </div></div>
+  </article>
+
+  <div class="cur__num" id="num" aria-hidden="true">01</div>
+  <button class="cur__arrow cur__arrow--prev" id="prev" aria-label="Slide précédente"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+  <button class="cur__arrow cur__arrow--next" id="next" aria-label="Slide suivante"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+  <div class="cur__dots" id="dots" role="tablist" aria-label="Choisir une slide"></div>
+</section>
+
+<!-- SCRIPT — balayage clip-path (nouvelle par-dessus) + numéro + dots + drag -->
+<script>
+  (function () {
+    var cur = document.getElementById('cur');
+    var slides = [].slice.call(cur.querySelectorAll('.cur__slide'));
+    var n = slides.length;
+    var dotsBox = document.getElementById('dots');
+    var numEl = document.getElementById('num');
+    var rm = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    var i = 0, timer, paused = false, busy = false, DUR = 6000;
+
+    slides.forEach(function (_, k) {
+      var d = document.createElement('button'); d.className='cur__dot'+(k===0?' is-on':'');
+      d.setAttribute('role','tab'); d.setAttribute('aria-label','Slide '+(k+1));
+      d.addEventListener('click', function(){ paused=true; go(k); });
+      dotsBox.appendChild(d);
+    });
+    var dots = [].slice.call(dotsBox.children);
+
+    function go (k) {
+      k = (k+n)%n;
+      if (k===i || busy) return;
+      var oldS = slides[i], newS = slides[k];
+      i = k; busy = true;
+      // nouvelle slide par-dessus, on relance le clip depuis "caché"
+      newS.style.zIndex = 2; oldS.style.zIndex = 1;
+      newS.classList.remove('is-on'); void newS.offsetWidth; newS.classList.add('is-on');
+      numEl.textContent = String(i+1).padStart(2,'0');
+      dots.forEach(function (d, j){ d.classList.toggle('is-on', j===i); });
+      var done = function () {
+        oldS.classList.remove('is-on'); oldS.style.zIndex = 0; newS.style.zIndex = 1;
+        busy = false; schedule();
+      };
+      if (rm) { done(); } else { setTimeout(done, 900); }
+    }
+    function schedule(){ clearTimeout(timer); if(!paused && !rm) timer=setTimeout(function(){ go(i+1); }, DUR); }
+
+    document.getElementById('prev').addEventListener('click', function(){ paused=true; go(i-1); });
+    document.getElementById('next').addEventListener('click', function(){ paused=true; go(i+1); });
+    cur.tabIndex = 0;
+    cur.addEventListener('keydown', function(e){ if(e.key==='ArrowLeft'){paused=true;go(i-1);} else if(e.key==='ArrowRight'){paused=true;go(i+1);} });
+    cur.addEventListener('mouseenter', function(){ clearTimeout(timer); });
+    cur.addEventListener('mouseleave', function(){ if(!paused) schedule(); });
+
+    var sx=0, down=false;
+    cur.addEventListener('pointerdown', function(e){ if(e.target.closest('button,a')) return; down=true; sx=e.clientX; clearTimeout(timer); });
+    cur.addEventListener('pointerup', function(e){ if(!down) return; down=false; var dx=e.clientX-sx; if(Math.abs(dx)>50){ paused=true; go(dx<0?i+1:i-1);} else schedule(); });
+
+    schedule();
+  })();
+</script>
+
+</body>
+</html>

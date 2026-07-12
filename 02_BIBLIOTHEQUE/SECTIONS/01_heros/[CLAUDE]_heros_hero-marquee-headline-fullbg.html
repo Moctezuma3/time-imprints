@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- lib:meta -->
+<meta name="lib:id" content="heros_hero-marquee-headline-fullbg">
+<meta name="lib:groupe" content="01-header">
+<meta name="lib:categorie" content="heros">
+<meta name="lib:intention" content="ouverture-captation">
+<meta name="lib:placement" content="section">
+<meta name="lib:niveau" content="2">
+<meta name="lib:auteur" content="CLAUDE (généré sur demande — variante de heros_hero-marquee-headline)">
+<meta name="lib:titre" content="Image plein fond + cadre de texte translucide (marquee)">
+<meta name="lib:tags" content="JS natif, image plein fond, cadre translucide, marquee, avatars, preuve sociale">
+<meta name="lib:utilite" content="Variante de marquee-headline : l'image occupe TOUT le fond (plein écran, cover), et le contenu (titre, avatars, stat, CTA, logos défilants) est posé dans un CADRE translucide à ~30% d'opacité (verre dépoli) par-dessus. Immersion visuelle forte, texte lisible grâce au voile + backdrop-blur. JS natif.">
+<meta name="lib:showcase" content="non">
+<meta name="lib:secteurs" content="polyvalent">
+<meta name="lib:slots" content="titre:titre:court; accroche:texte:moyen; cta:cta:1-2; visuel:media:1">
+<meta name="lib:anatomie" content="base:1 titre, 1 sous-titre, 1 image plein fond, 4 avatars, 1 stat, 1 bouton CTA, 10 logos; layout:section plein écran (100dvh), image en fond cover plein cadre, contenu dans un cadre translucide (~30% opacite, bordure fine, backdrop-blur) aligné à gauche/centre; voile:leger degrade sombre sur l image pour la lisibilite; titre:H1 clamp graisse fine, texte clair; proof:avatars empiles (grayscale, couleur au survol) + stat chiffree; cta:bouton pastille avec double fleche qui bascule au survol; logos:bandeau marquee en defilement continu, pause au survol; animation:contenu en cascade a l entree, marquee en boucle; hover:avatars qui s ecartent et grossissent, marquee en pause; responsive:cadre pleine largeur avec marge sous 768px, degrades du marquee reduits, anti-debordement; a11y:reduced-motion coupe le marquee et les grossissements">
+<!-- /lib:meta -->
+<title>Image plein fond + cadre de texte translucide (marquee)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<!-- ==========================================================================
+     STYLE — Hero · Image plein fond + cadre de texte translucide (30%)
+     L'image couvre tout le fond ; le contenu vit dans un cadre en verre
+     dépoli à ~30% d'opacité. Re-skin rapide : bloc :root.
+     ========================================================================== -->
+<style>
+  /* --- 1. TOKENS ---------------------------------------------------------- */
+  :root{
+    --accent:#e1fcad;            /* pastille CTA */
+    --accent-fg:#122023;         /* fond CTA au survol */
+    --panel:rgba(16,19,20,.30);  /* CADRE translucide ~30% */
+    --panel-line:rgba(255,255,255,.22);
+    --fg:#ffffff;
+    --muted:rgba(255,255,255,.78);
+    --font:"Outfit",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --maxw:1480px;
+  }
+
+  /* --- 2. RESET ----------------------------------------------------------- */
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  img{display:block;max-width:100%}
+
+  /* --- 3. LAYOUT : image plein fond + cadre ------------------------------ */
+  .hero{
+    position:relative;min-height:100dvh;width:100%;overflow:hidden;
+    display:flex;
+    color:var(--fg);font-family:var(--font);
+  }
+  .hero__media{position:absolute;inset:0;z-index:0}
+  .hero__media img{width:100%;height:100%;object-fit:cover;object-position:center}
+  /* voile lisibilité sur l'image (léger, côté droit où est le panneau) */
+  .hero__media::after{content:"";position:absolute;inset:0;
+    background:linear-gradient(90deg,transparent 0%,rgba(8,10,11,.15) 45%,rgba(8,10,11,.4) 100%)}
+
+  /* le CADRE = panneau translucide PLEINE HAUTEUR à droite (comme la colonne
+     contenu de l'original, mais posé sur l'image plein fond, à ~30% d'opacité) */
+  .hero__frame{
+    position:relative;z-index:1;min-width:0;
+    width:100%;max-width:52rem;margin-left:auto;
+    display:flex;flex-direction:column;justify-content:center;
+    background:var(--panel);
+    border-left:1px solid var(--panel-line);
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    padding:clamp(3rem,7vh,6rem) clamp(1.5rem,5vw,3.5rem);
+  }
+
+  /* --- 4. TYPOGRAPHIE ----------------------------------------------------- */
+  .hero__title{
+    font-weight:400;letter-spacing:-.03em;line-height:1.04;color:var(--fg);
+    font-size:clamp(2.2rem,5vw,4rem);
+  }
+  .hero__sub{
+    margin-top:1.4rem;max-width:42ch;
+    font-weight:300;line-height:1.6;
+    font-size:clamp(1rem,1.5vw,1.2rem);color:var(--muted);
+  }
+
+  /* --- 5. PREUVE SOCIALE (avatars + stat) --------------------------------- */
+  .hero__proof{margin-top:2rem;display:flex;flex-wrap:wrap;align-items:center;gap:.85rem}
+  .hero__avatars{display:flex}
+  .hero__avatars img{
+    position:relative;z-index:1;
+    width:3rem;height:3rem;border-radius:50%;object-fit:cover;
+    border:2px solid rgba(255,255,255,.85);margin-left:-.75rem;transform-origin:center bottom;
+    filter:grayscale(1);
+    transition:filter .3s ease,transform .55s cubic-bezier(.16,1,.3,1),margin .55s cubic-bezier(.16,1,.3,1),box-shadow .55s cubic-bezier(.16,1,.3,1);
+  }
+  .hero__avatars img:first-child{margin-left:0}
+  .hero__stat{display:flex;flex-direction:column;font-size:.9rem;line-height:1.25}
+  .hero__stat b{font-weight:600;font-size:1.05rem;color:var(--fg)}
+  .hero__stat span{color:var(--muted)}
+
+  /* --- 6. CTA (pastille + double flèche au survol) ------------------------ */
+  .hero__cta{
+    margin-top:2.2rem;display:inline-flex;align-items:center;
+    background:none;border:0;padding:0;cursor:pointer;font:inherit;
+  }
+  .hero__cta-label,
+  .hero__cta-arrow{
+    background:var(--accent);color:var(--accent-fg);
+    transition:background .5s ease,color .5s ease;
+  }
+  .hero__cta-label{border-radius:999px;padding:.85rem 1.5rem;font-size:1rem;font-weight:500}
+  .hero__cta-arrow{
+    position:relative;display:flex;align-items:center;justify-content:center;
+    width:3.1rem;height:3.1rem;border-radius:50%;margin-left:.4rem;overflow:hidden;
+  }
+  .hero__cta-arrow svg{position:absolute;width:1.25rem;height:1.25rem;transition:transform .5s ease}
+  .hero__cta-arrow .a1{transform:translate(0,0)}
+  .hero__cta-arrow .a2{transform:translate(-180%,180%)}
+
+  /* --- 7. MARQUEE LOGOS --------------------------------------------------- */
+  .hero__marquee{position:relative;margin-top:2.5rem;overflow:hidden}
+  .hero__marquee::before,
+  .hero__marquee::after{content:"";position:absolute;top:0;z-index:2;width:3.5rem;height:100%;pointer-events:none}
+  .hero__marquee::before{left:0;background:linear-gradient(to right,rgba(20,23,24,.55),transparent)}
+  .hero__marquee::after{right:0;background:linear-gradient(to left,rgba(20,23,24,.55),transparent)}
+  .hero__track{display:flex;width:max-content;gap:0;animation:h19-marquee 25s linear infinite}
+  .hero__track .logo{display:flex;align-items:center;justify-content:center;padding:0 1.25rem}
+  .hero__track .logo img{height:2rem;width:auto;opacity:.85;filter:brightness(0) invert(1)}
+  .hero__marquee:hover .hero__track{animation-play-state:paused}
+  @keyframes h19-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+  /* Hover (souris fine seulement) */
+  @media (hover:hover) and (pointer:fine){
+    .hero__avatars img:hover{
+      filter:grayscale(0);z-index:5;transform:scale(1.15);
+      box-shadow:0 .6rem 1.4rem rgba(0,0,0,.4);
+    }
+    .hero__avatars img:hover + img{margin-left:.35rem}
+    .hero__avatars:has(img:hover) img:hover{margin-left:.35rem}
+    .hero__avatars img:first-child:hover{margin-left:0}
+    .hero__cta:hover .hero__cta-label,
+    .hero__cta:hover .hero__cta-arrow{background:var(--accent-fg);color:var(--accent)}
+    .hero__cta:hover .a1{transform:translate(180%,-180%)}
+    .hero__cta:hover .a2{transform:translate(0,0)}
+  }
+
+  /* --- 8. RESPONSIVE ------------------------------------------------------ */
+  @media (max-width:767px){
+    .hero{overflow-x:hidden}
+    .hero__frame{max-width:none;border-left:0;padding:2rem 1.4rem}
+    .hero__media::after{background:linear-gradient(180deg,transparent 30%,rgba(8,10,11,.4) 100%)}
+    .hero__marquee{margin-top:2rem}
+    .hero__marquee::before,.hero__marquee::after{width:1.5rem}
+    .hero__track .logo{padding:0 .9rem}
+  }
+
+  /* --- 9. ACCESSIBILITÉ --------------------------------------------------- */
+  @media (prefers-reduced-motion:reduce){
+    .hero__track{animation:none}
+    *{transition:none!important}
+    .hero__avatars img:hover{transform:none;margin-left:-.75rem;box-shadow:none}
+    .hero__avatars img:first-child:hover{margin-left:0}
+    .hero__avatars img:hover + img{margin-left:-.75rem}
+  }
+
+  /* --- Animation d'entrée au chargement (cascade) ---------------------- */
+  @keyframes heroIn{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:translateY(0)}}
+  .hero__title{animation:heroIn .8s cubic-bezier(.16,1,.3,1) .15s backwards}
+  .hero__sub{animation:heroIn .8s cubic-bezier(.16,1,.3,1) .27s backwards}
+  .hero__proof{animation:heroIn .8s cubic-bezier(.16,1,.3,1) .39s backwards}
+  .hero__cta{animation:heroIn .8s cubic-bezier(.16,1,.3,1) .51s backwards}
+  @media (prefers-reduced-motion:reduce){.hero__title,.hero__sub,.hero__proof,.hero__cta{animation:none}}
+</style>
+</head>
+<body>
+
+<!-- ==========================================================================
+     STRUCTURE — image plein fond + cadre translucide contenant le texte.
+     ========================================================================== -->
+<section class="hero">
+
+  <!-- image de fond plein cadre -->
+  <div class="hero__media">
+    <img src="https://placehold.co/1920x1080" alt="Visuel" loading="eager" fetchpriority="high" data-slot="visuel">
+  </div>
+
+  <!-- cadre translucide (~30%) -->
+  <div class="hero__frame">
+    <h1 class="hero__title" data-slot="titre">Un titre clair pour une promesse forte.</h1>
+
+    <p class="hero__sub" data-slot="accroche">
+      Quelques lignes d'introduction, neutres et concises, pour préciser
+      l'intention et poser le contexte sans en dire trop.
+    </p>
+
+    <div class="hero__proof">
+      <div class="hero__avatars">
+        <img src="https://placehold.co/96x96" alt="">
+        <img src="https://placehold.co/96x96" alt="">
+        <img src="https://placehold.co/96x96" alt="">
+        <img src="https://placehold.co/96x96" alt="">
+      </div>
+      <div class="hero__stat">
+        <b>15&nbsp;000+</b>
+        <span>Équipes connectées</span>
+      </div>
+    </div>
+
+    <button class="hero__cta" type="button" data-slot="cta">
+      <span class="hero__cta-label" data-field="label">Démarrer un projet</span>
+      <span class="hero__cta-arrow">
+        <svg class="a1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+        <svg class="a2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+      </span>
+    </button>
+
+    <div class="hero__marquee">
+      <div class="hero__track">
+        <div class="logo"><img src="https://placehold.co/100x32?text=Logo+1" alt="Logo"></div>
+        <div class="logo"><img src="https://placehold.co/100x32?text=Logo+2" alt="Logo"></div>
+        <div class="logo"><img src="https://placehold.co/100x32?text=Logo+3" alt="Logo"></div>
+        <div class="logo"><img src="https://placehold.co/100x32?text=Logo+4" alt="Logo"></div>
+        <div class="logo"><img src="https://placehold.co/100x32?text=Logo+5" alt="Logo"></div>
+        <div class="logo"><img src="https://placehold.co/100x32?text=Logo+1" alt="Logo"></div>
+        <div class="logo"><img src="https://placehold.co/100x32?text=Logo+2" alt="Logo"></div>
+        <div class="logo"><img src="https://placehold.co/100x32?text=Logo+3" alt="Logo"></div>
+        <div class="logo"><img src="https://placehold.co/100x32?text=Logo+4" alt="Logo"></div>
+        <div class="logo"><img src="https://placehold.co/100x32?text=Logo+5" alt="Logo"></div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+</body>
+</html>

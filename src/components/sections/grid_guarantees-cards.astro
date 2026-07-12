@@ -1,0 +1,205 @@
+---
+/**
+ * Integration — section `grid_guarantees-cards` (normal section, non bleed).
+ * Phase 2 rules applied:
+ *   1. Local :root tokens, reset, body styles and Google-Fonts import removed → base tokens.
+ *   2. Vertical padding removed → uniform `--section-y` rhythm from the base layout.
+ *   3. Hard-coded blues → theme tokens (accent halo/shadow via color-mix);
+ *      icon chips alternate pink / cyan (brand pair).
+ *   4. Icons redrawn per promise: shield-check, t-shirt, globe, gift.
+ *   5. Card titles promoted to <h3> for document outline.
+ *   6. JS scoped to `.ti-guarantees` roots (safe with 0 or n instances);
+ *      hidden reveal state gated behind `:global(.wf-js)`.
+ */
+type IconKey = "shield" | "shirt" | "globe" | "gift";
+export interface Props {
+  eyebrow?: string;
+  title?: string;
+  intro?: string;
+  cards?: { title: string; text: string; icon?: IconKey }[];
+}
+const {
+  eyebrow = "Our promises",
+  title = "The fine print, minus the fine print",
+  intro = "Four things we promise with every box that leaves the studio.",
+  cards = [
+    {
+      title: "Skin-safe paint",
+      text: "Hypoallergenic, washes off skin in one shower — approved by toddlers and dogs.",
+      icon: "shield",
+    },
+    {
+      title: "Wear it, wash it",
+      text: "T-shirt paint fixes into the fabric and survives the washing machine.",
+      icon: "shirt",
+    },
+    {
+      title: "Worldwide delivery",
+      text: "Fast, tracked, gift-ready — straight from Ukraine.",
+      icon: "globe",
+    },
+    {
+      title: "A gift that gives again",
+      text: "Every box hides a scratch card with a discount for your next kit.",
+      icon: "gift",
+    },
+  ],
+} = Astro.props;
+
+const ICONS: Record<IconKey, string> = {
+  shield: '<path d="M12 2l9 4.5v5C21 17 17 21 12 22 7 21 3 17 3 11.5v-5z"/><path d="M9 12l2 2 4-4"/>',
+  shirt: '<path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/>',
+  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15.3 15.3 0 0 1 4 9 15.3 15.3 0 0 1-4 9 15.3 15.3 0 0 1-4-9 15.3 15.3 0 0 1 4-9z"/>',
+  gift: '<path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>',
+};
+const FALLBACK: IconKey[] = ["shield", "shirt", "globe", "gift"];
+---
+
+<section class="ti-guarantees">
+  <div class="g__inner">
+    <div class="g__head wf-rev">
+      <span class="g__eyebrow">{eyebrow}</span>
+      <h2 data-slot="titre">{title}</h2>
+      <p data-slot="intro">{intro}</p>
+    </div>
+
+    <div class="grid" data-slot="engagements">
+      {cards.map((c, i) => (
+        <article class="card wf-rev" style={`--d:${i}`} data-slot-item>
+          <div class="card__ico">
+            <svg viewBox="0 0 24 24" aria-hidden="true" set:html={ICONS[c.icon ?? FALLBACK[i % FALLBACK.length]]} />
+          </div>
+          <h3 class="card__title" data-field="titre">{c.title}</h3>
+          <p class="card__desc" data-field="texte">{c.text}</p>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .ti-guarantees {
+    --ease: cubic-bezier(.16,1,.3,1);
+    --easeBack: cubic-bezier(.34,1.56,.64,1);
+    color: var(--fg);
+  }
+  .g__inner { width: 100%; max-width: var(--container); margin: 0 auto; padding-inline: var(--gutter); }
+  svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  .g__head { text-align: center; max-width: 40rem; margin: 0 auto 2.6rem; }
+  .g__eyebrow { font-size: .8rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--accent); }
+  .g__head h2 { font-size: clamp(1.7rem, 3.6vw, 2.4rem); font-weight: 700; letter-spacing: -.025em; margin-top: .5rem; }
+  .g__head p { color: var(--muted); margin-top: .6rem; }
+
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.1rem; perspective: 1100px; }
+
+  .card {
+    position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 1.6rem 1.4rem; transform-style: preserve-3d; will-change: transform; isolation: isolate;
+    transition: transform .5s var(--ease), box-shadow .5s var(--ease), border-color .3s;
+  }
+  /* light spot following the cursor */
+  .card::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 0;
+    background: radial-gradient(340px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--accent) 12%, transparent), transparent 60%);
+    opacity: 0; transition: opacity .35s var(--ease);
+  }
+  .card > * { position: relative; z-index: 1; }
+  .card__ico {
+    width: 3rem; height: 3rem; border-radius: .8rem; display: grid; place-items: center;
+    background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); margin-bottom: 1.1rem;
+  }
+  /* brand pair: even cards flip the chip to cyan */
+  .card:nth-child(even) .card__ico {
+    background: color-mix(in srgb, var(--accent-2) 14%, transparent); color: var(--accent-2);
+  }
+  .card__ico svg { width: 1.5rem; height: 1.5rem; }
+
+  .card__title { font-weight: 700; font-size: 1.08rem; letter-spacing: -.01em; }
+  .card__desc { color: var(--muted); margin-top: .4rem; font-size: .93rem; line-height: 1.55; }
+
+  @media (hover: hover) and (pointer: fine) {
+    .card:hover {
+      border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+      box-shadow: 0 32px 60px -30px color-mix(in srgb, var(--accent) 45%, transparent);
+    }
+    .card:hover::after { opacity: 1; }
+    /* during the tilt, transform is driven by JS without transition (follows the cursor) */
+    .card.is-tilt { transition: box-shadow .5s var(--ease), border-color .3s; }
+  }
+
+  /* --- DRAMATIC REVEAL ON SCROLL (rise + scale + blur, spring) --- */
+  :global(.wf-js) .wf-rev {
+    opacity: 0; transform: translateY(46px) scale(.93); filter: blur(6px);
+    transition: opacity .8s var(--ease), transform .9s var(--easeBack), filter .8s var(--ease);
+  }
+  :global(.wf-js) .wf-rev.is-in { opacity: 1; transform: none; filter: none; }
+  /* EXIT — mirror of the entrance towards the TOP (scrolling down) */
+  :global(.wf-js) .wf-rev.wf-exit-up { opacity: 0; transform: translateY(-46px) scale(.93); filter: blur(6px); }
+  :global(.wf-js) .grid .card.wf-rev {
+    transition: opacity .8s var(--ease), transform .9s var(--easeBack), filter .8s var(--ease);
+    transition-delay: calc(var(--d, 0) * .07s);
+  }
+  /* once revealed, restore a soft transition for the tilt release */
+  :global(.wf-js) .grid .card.is-in { transition: transform .5s var(--ease), box-shadow .5s var(--ease), border-color .3s; }
+
+  @media (max-width: 860px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 460px) { .grid { grid-template-columns: 1fr; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+    :global(.wf-js) .wf-rev { opacity: 1 !important; transform: none !important; filter: none !important; }
+  }
+</style>
+
+<script>
+  document.documentElement.classList.add("wf-js");
+  (() => {
+    const roots = Array.from(document.querySelectorAll<HTMLElement>(".ti-guarantees"));
+    if (!roots.length) return;
+
+    /* Reveal on scroll: .is-in on each entering .wf-rev, mirrored exit upwards */
+    const els: HTMLElement[] = [];
+    roots.forEach((root) => els.push(...Array.from(root.querySelectorAll<HTMLElement>(".wf-rev"))));
+    if (!("IntersectionObserver" in window)) {
+      els.forEach((el) => el.classList.add("is-in"));
+    } else {
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add("is-in");
+            e.target.classList.remove("wf-exit-up");
+          } else {
+            e.target.classList.remove("is-in");
+            e.target.classList.toggle("wf-exit-up", e.boundingClientRect.top < 0);
+          }
+        });
+      }, { threshold: 0.15 });
+      els.forEach((el) => io.observe(el));
+    }
+
+    /* 3D tilt + spot on hover (fine pointer, honors reduced motion) */
+    if (!window.matchMedia("(hover:hover) and (pointer:fine)").matches) return;
+    if (window.matchMedia("(prefers-reduced-motion:reduce)").matches) return;
+    const MAX = 9; // degrees
+    roots.forEach((root) => {
+      root.querySelectorAll<HTMLElement>(".card").forEach((card) => {
+        card.addEventListener("mousemove", (e: MouseEvent) => {
+          const r = card.getBoundingClientRect();
+          const px = (e.clientX - r.left) / r.width;
+          const py = (e.clientY - r.top) / r.height;
+          card.classList.add("is-tilt");
+          card.style.transform =
+            "perspective(900px) rotateX(" + ((0.5 - py) * MAX).toFixed(2) +
+            "deg) rotateY(" + ((px - 0.5) * MAX).toFixed(2) + "deg) translateY(-6px)";
+          card.style.setProperty("--mx", (px * 100).toFixed(1) + "%");
+          card.style.setProperty("--my", (py * 100).toFixed(1) + "%");
+        });
+        card.addEventListener("mouseleave", () => {
+          card.classList.remove("is-tilt");
+          card.style.transform = "";
+        });
+      });
+    });
+  })();
+</script>

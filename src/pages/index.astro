@@ -1,0 +1,42 @@
+---
+/**
+ * index.astro — Time Imprints homepage.
+ * Conversion path: hero → trust stats → kits row → how it works
+ * → Instagram feed → reviews marquee → final CTA.
+ */
+import Layout from "../layouts/Layout.astro";
+import AnnouncementBar from "../components/sections/utilitaire_announcement-bar.astro";
+import Nav from "../components/sections/navbars_nav-sticky-simple.astro";
+import Cart from "../components/Cart.astro";
+import Hero from "../components/sections/heros_hero-slider-zoom.astro";
+import TrustStats from "../components/sections/stats_trust-stats-inline.astro";
+import KitsRow from "../components/sections/carrousel_products-horizontal-scroll.astro";
+import HowItWorks from "../components/sections/timeline_process-steps-outcomes.astro";
+import SocialFeed from "../components/sections/blog-reseaux-sociaux_social-feed-grid.astro";
+import ReviewsMarquee from "../components/sections/testimonials_testimonials-marquee.astro";
+import CtaBanner from "../components/sections/bandeau_cta-banner.astro";
+import Footer from "../components/sections/pieds-de-page_footer-bigtype.astro";
+import { SITE } from "../data/site";
+---
+
+<Layout
+  title={`${SITE.name} — ${SITE.tagline}`}
+  description={SITE.description}
+  lang="en"
+>
+  <Fragment slot="header">
+    <AnnouncementBar />
+    <Nav currentPath="/" />
+    <Cart />
+  </Fragment>
+
+  <Hero />
+  <TrustStats />
+  <KitsRow />
+  <HowItWorks />
+  <SocialFeed />
+  <ReviewsMarquee />
+  <CtaBanner />
+
+  <Footer slot="footer" />
+</Layout>

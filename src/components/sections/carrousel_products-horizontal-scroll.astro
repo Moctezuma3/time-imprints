@@ -1,0 +1,212 @@
+---
+/**
+ * Integration — section `carrousel_products-horizontal-scroll` ("The kits" row).
+ * Normal section (non bleed). Phase 2 rules applied:
+ *   1. Local `:root` tokens, reset and Google-Fonts markup removed → base tokens.
+ *   2. `min-height` / vertical padding removed → base `--section-y` rhythm.
+ *   3. Hard-coded colors → theme tokens (--surface, --line, --accent, --accent-2,
+ *      --shadow-color, color-mix tints). Progress bar = brand pink→cyan gradient.
+ *   4. Eyebrow removed (typo sobriety rule).
+ *   5. Cards fed from PRODUCTS (site.ts) — image, badge, name, short, EUR + UAH
+ *      price, "View kit" + "Add to cart" CTAs (cart via data-attributes).
+ *   6. JS scoped per instance via `.ti-kitscroll` (safe with 0 or 2+ instances):
+ *      arrows (scroll by card, disabled at ends), mouse drag, progress bar.
+ */
+import { PRODUCTS, type Product } from "../../data/site";
+
+export interface Props {
+  title?: string;
+  products?: Product[];
+  /** Product-page cross-sell: hide the kit currently being viewed. */
+  excludeSlug?: string;
+}
+const {
+  title = "Five kits, one unforgettable evening",
+  products = PRODUCTS,
+  excludeSlug,
+} = Astro.props;
+const items = excludeSlug ? products.filter((p) => p.slug !== excludeSlug) : products;
+---
+
+<section class="ti-kitscroll" aria-label="Time Imprints kits">
+  <div class="head">
+    <h2 class="head__title" data-slot="titre">{title}</h2>
+    <div class="arrows">
+      <button class="arrows__prev" type="button" aria-label="Previous kits" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+      </button>
+      <button class="arrows__next" type="button" aria-label="Next kits">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="scroller" tabindex="0" aria-label="Kit list, scrolls horizontally" data-slot="produits">
+    {items.map((p) => (
+      <article class="product" data-slot-item>
+        <a class="product__media" href={`/kits/${p.slug}/`} tabindex="-1">
+          <img src={p.image} alt={p.name} loading="lazy" />
+          {p.badge && <span class="product__badge">{p.badge}</span>}
+        </a>
+        <div class="product__body">
+          <h3 class="product__name">{p.name}</h3>
+          <p class="product__short">{p.short}</p>
+          <p class="product__price">€{p.priceEur} <small>≈ {p.priceUah} ₴</small></p>
+          <div class="product__ctas">
+            <a class="btn btn--ghost product__btn" href={`/kits/${p.slug}/`}>View kit</a>
+            <button
+              type="button"
+              class="btn btn--primary product__btn"
+              data-add-to-cart
+              data-slug={p.slug}
+              data-name={p.name}
+              data-price={p.priceEur}
+              data-image={p.image}
+              data-label-original="Add to cart"
+            >Add to cart</button>
+          </div>
+        </div>
+      </article>
+    ))}
+  </div>
+
+  <div class="progress"><div class="progress__track"><div class="progress__bar"></div></div></div>
+</section>
+
+<style>
+  .ti-kitscroll { --card: 17rem; --ease: cubic-bezier(.16,1,.3,1); color: var(--fg); }
+
+  .head {
+    max-width: var(--container); margin: 0 auto 1.6rem; padding-inline: var(--gutter);
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  }
+  .head__title { font-size: clamp(1.7rem, 3.6vw, 2.4rem); font-weight: 800; letter-spacing: -.025em; }
+
+  .arrows { display: flex; gap: .5rem; }
+  .arrows button {
+    width: 2.7rem; height: 2.7rem; border-radius: 50%; border: 1px solid var(--line);
+    background: var(--surface); color: var(--fg); display: grid; place-items: center; cursor: pointer;
+    transition: border-color .2s, opacity .2s;
+  }
+  .arrows button svg {
+    width: 1.2rem; height: 1.2rem;
+    fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .arrows button:disabled { opacity: .35; cursor: default; }
+
+  .scroller {
+    max-width: var(--container); margin: 0 auto;
+    display: flex; gap: 1.1rem; overflow-x: auto; scroll-snap-type: x mandatory;
+    padding: .4rem var(--gutter) 1.4rem; scrollbar-width: none; cursor: grab;
+  }
+  .scroller::-webkit-scrollbar { display: none; }
+  .scroller.is-drag { cursor: grabbing; scroll-snap-type: none; }
+  .scroller.is-drag a { pointer-events: none; }
+
+  .product {
+    flex: 0 0 var(--card); scroll-snap-align: start; display: flex; flex-direction: column;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    overflow: hidden; transition: border-color .2s, box-shadow .2s;
+  }
+  .product__media {
+    position: relative; aspect-ratio: 1 / 1; display: block;
+    background: color-mix(in srgb, var(--fg) 6%, var(--bg)); overflow: hidden;
+  }
+  .product__media img { width: 100%; height: 100%; object-fit: cover; }
+  .product__badge {
+    position: absolute; top: .7rem; left: .7rem;
+    background: var(--accent); color: var(--accent-contrast);
+    font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    padding: .3rem .7rem; border-radius: 999px;
+  }
+
+  .product__body { padding: 1rem 1.1rem 1.2rem; display: flex; flex-direction: column; flex: 1; }
+  .product__name { font-size: 1.05rem; font-weight: 700; letter-spacing: -.01em; }
+  .product__short { color: var(--muted); font-size: .88rem; line-height: 1.5; margin-top: .25rem; }
+  .product__price { margin-top: .7rem; font-weight: 800; letter-spacing: -.02em; font-size: 1.15rem; }
+  .product__price small { font-size: .8rem; font-weight: 500; color: var(--muted); }
+  .product__ctas { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: auto; padding-top: .9rem; }
+  .product__btn { min-height: 38px; padding: .45em 1em; font-size: .88rem; border-radius: calc(var(--radius) * .6); }
+  .product__btn.btn--primary { flex: 1; }
+
+  .progress { max-width: var(--container); margin: 0 auto; padding-inline: var(--gutter); }
+  .progress__track { height: 4px; background: var(--line); border-radius: 4px; overflow: hidden; }
+  .progress__bar {
+    height: 100%; width: 30%; border-radius: 4px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    transition: width .1s linear;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .arrows button:hover:not(:disabled) { border-color: var(--accent); }
+    .product:hover {
+      border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+      box-shadow: 0 16px 32px -22px var(--shadow-color);
+    }
+  }
+
+  @media (max-width: 520px) {
+    .ti-kitscroll { --card: 14rem; }
+    .arrows { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .product, .progress__bar { transition: none; }
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>(".ti-kitscroll").forEach((root) => {
+    const sc = root.querySelector<HTMLElement>(".scroller");
+    const bar = root.querySelector<HTMLElement>(".progress__bar");
+    const prev = root.querySelector<HTMLButtonElement>(".arrows__prev");
+    const next = root.querySelector<HTMLButtonElement>(".arrows__next");
+    if (!sc || !bar || !prev || !next) return;
+
+    function step() {
+      const card = sc!.querySelector<HTMLElement>(".product");
+      return card ? card.offsetWidth + 18 : 300;
+    }
+    function update() {
+      const max = sc!.scrollWidth - sc!.clientWidth;
+      const ratio = max > 0 ? sc!.scrollLeft / max : 0;
+      const visible = sc!.clientWidth / sc!.scrollWidth;
+      bar!.style.width = Math.max(12, visible * 100) + "%";
+      bar!.style.transform = "translateX(" + ratio * (100 / visible - 100) + "%)";
+      prev!.disabled = sc!.scrollLeft <= 2;
+      next!.disabled = sc!.scrollLeft >= max - 2;
+    }
+    prev.addEventListener("click", () => sc.scrollBy({ left: -step() * 1.5, behavior: "smooth" }));
+    next.addEventListener("click", () => sc.scrollBy({ left: step() * 1.5, behavior: "smooth" }));
+    sc.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+
+    /* mouse drag — touch stays native */
+    let down = false, sx = 0, sl = 0, moved = 0;
+    sc.addEventListener("pointerdown", (e) => {
+      moved = 0;
+      if (e.pointerType === "touch") return;
+      down = true; sx = e.clientX; sl = sc.scrollLeft;
+      sc.classList.add("is-drag");
+    });
+    window.addEventListener("pointermove", (e) => {
+      if (!down) return;
+      const dx = e.clientX - sx;
+      moved = Math.max(moved, Math.abs(dx));
+      sc.scrollLeft = sl - dx;
+    });
+    window.addEventListener("pointerup", () => {
+      if (!down) return;
+      down = false; sc.classList.remove("is-drag");
+    });
+    /* a real drag must not fire the link click on release */
+    sc.addEventListener(
+      "click",
+      (e) => {
+        if (moved > 6) { e.preventDefault(); e.stopPropagation(); moved = 0; }
+      },
+      true
+    );
+    update();
+  });
+</script>

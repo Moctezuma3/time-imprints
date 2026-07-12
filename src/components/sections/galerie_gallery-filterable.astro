@@ -1,0 +1,227 @@
+---
+/**
+ * Integration — section `galerie_gallery-filterable` (normal section, not bleed).
+ * Phase 2 rules applied:
+ *   1. Local :root removed → tokens inherited from the base + theme.css.
+ *   2. Local reset + Google Fonts import removed (button reset kept scoped).
+ *   3. Internal vertical padding removed → the base gives `--section-y` rhythm.
+ *   4. Hard-coded colors → tokens; active pill uses the brand pink→cyan gradient.
+ *   5. `id="grid"` / `id="count"` removed → section-scoped queries (safe with
+ *      0 or 2 instances per page).
+ *   6. Filter logic + result counter + replayed stagger cascade preserved,
+ *      counter wording in English ("print/prints").
+ *   7. `html.wf-js`-gated selectors wrapped in :global() so Astro scoping
+ *      doesn't sever them from the <html> element.
+ */
+type CatId = "canvas" | "tshirts" | "family" | "couples";
+
+export interface Props {
+  title?: string;
+  subtitle?: string;
+  items?: { image: string; cat: CatId; caption: string; alt?: string }[];
+}
+
+const CAT_LABELS: Record<CatId, string> = {
+  canvas: "Canvas",
+  tshirts: "T-shirts",
+  family: "Family",
+  couples: "Couples",
+};
+const FILTERS: { id: "all" | CatId; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "canvas", label: "Canvas" },
+  { id: "tshirts", label: "T-shirts" },
+  { id: "family", label: "Family" },
+  { id: "couples", label: "Couples" },
+];
+
+const {
+  title = "Every print in one place",
+  subtitle = "Filter by kit type — every single one was made at home, in one messy, happy evening.",
+  items = [
+    { image: "/img/gallery-01.jpg", cat: "couples", caption: "Red on black, the classic", alt: "Red couple body print on a black canvas" },
+    { image: "/img/gallery-02.jpg", cat: "canvas", caption: "White body print with sculpture", alt: "White and silver body print canvas styled with a sculpture" },
+    { image: "/img/gallery-03.jpg", cat: "family", caption: "Porch day in pink & red", alt: "Family handprint canvas in pink and red on a porch" },
+    { image: "/img/gallery-04.jpg", cat: "family", caption: "Baby hand, baby foot", alt: "Baby hand and foot prints on canvas" },
+    { image: "/img/gallery-05.jpg", cat: "couples", caption: "Terrace evening", alt: "Couple canvas photographed on a terrace in the evening" },
+    { image: "/img/gallery-06.jpg", cat: "canvas", caption: "Pearlescent pink", alt: "Pearlescent pink body print on canvas" },
+    { image: "/img/gallery-07.jpg", cat: "canvas", caption: "Gold on navy", alt: "Gold body print on a navy canvas" },
+    { image: "/img/gallery-08.jpg", cat: "canvas", caption: "Styled on the sideboard", alt: "Finished print canvas styled on a sideboard" },
+    { image: "/img/gallery-09.jpg", cat: "couples", caption: "Against the sky", alt: "Couple holding their canvas up against the sky" },
+    { image: "/img/gallery-10.jpg", cat: "couples", caption: "Blue & pink hands", alt: "Blue and pink handprints from a couple on canvas" },
+    { image: "/img/gallery-11.jpg", cat: "couples", caption: "Two canvases, one date", alt: "Couple with two matching print canvases" },
+    { image: "/img/gallery-12.jpg", cat: "canvas", caption: "Gold & silver layers", alt: "Layered gold and silver body prints on canvas" },
+    { image: "/img/kit-hugs.jpg", cat: "tshirts", caption: "The hug, worn", alt: "White hug print on a black t-shirt" },
+    { image: "/img/kit-kisses.jpg", cat: "tshirts", caption: "A heart of kisses", alt: "Kiss prints forming a heart on a t-shirt" },
+    { image: "/img/kit-body-tshirt-2.jpg", cat: "tshirts", caption: "Amor, painted", alt: "Painted body print t-shirt from the kit" },
+    { image: "/img/about-couple.jpg", cat: "tshirts", caption: "Matching hug tees", alt: "Couple kissing in matching hug-print t-shirts" },
+  ],
+} = Astro.props;
+---
+
+<section class="ti-gallery">
+  <div class="work__inner">
+
+    <header class="work__head">
+      <h2 class="work__title" data-slot="titre">{title}</h2>
+      <p class="work__sub">{subtitle}</p>
+    </header>
+
+    <div class="tabs" role="tablist" aria-label="Filter the gallery">
+      {FILTERS.map((f, i) => (
+        <button class="tab" role="tab" data-cat={f.id} aria-selected={i === 0 ? "true" : "false"}>{f.label}</button>
+      ))}
+    </div>
+
+    <p class="count" aria-live="polite">{items.length} {items.length === 1 ? "print" : "prints"}</p>
+
+    <div class="grid" data-slot="images">
+      {items.map((it) => (
+        <figure class="item" data-cat={it.cat} data-slot-item>
+          <img loading="lazy" src={it.image} alt={it.alt ?? it.caption} data-field="image" />
+          <figcaption class="item__overlay">
+            <div>
+              <span class="item__cat" data-field="categorie">{CAT_LABELS[it.cat]}</span>
+              <span class="item__title" data-field="titre">{it.caption}</span>
+            </div>
+          </figcaption>
+        </figure>
+      ))}
+    </div>
+
+  </div>
+</section>
+
+<style>
+  .ti-gallery {
+    --ease: cubic-bezier(.16,1,.3,1);
+    --easeBack: cubic-bezier(.34,1.56,.64,1);
+    color: var(--fg);
+  }
+  .work__inner { width: 100%; max-width: var(--container); margin: 0 auto; padding-inline: var(--gutter); }
+
+  .work__head { margin-bottom: 2rem; text-align: center; margin-inline: auto; max-width: 44rem; }
+  .work__title { font-size: var(--step-3); font-weight: 800; letter-spacing: -.025em; line-height: 1.1; }
+  .work__sub { margin-top: .7rem; color: var(--muted); line-height: 1.6; font-size: var(--step-0); }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: .4rem; justify-content: center; margin-bottom: 1.8rem; }
+  .tab {
+    padding: .55rem 1.1rem; border-radius: 999px;
+    font: inherit; font-size: var(--step--1); font-weight: 600; color: var(--muted);
+    background: none; border: 1px solid var(--line); cursor: pointer;
+    transition: background .2s, color .2s, border-color .2s;
+  }
+  .tab:hover { color: var(--fg); border-color: color-mix(in srgb, var(--fg) 30%, var(--line)); }
+  .tab[aria-selected="true"] {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: var(--accent-contrast); border-color: transparent;
+  }
+  .count { text-align: center; font-size: var(--step--1); color: var(--muted); margin-bottom: 1.2rem; }
+
+  .grid { display: grid; gap: 1rem; grid-template-columns: repeat(4, 1fr); }
+  .item {
+    position: relative; background: var(--surface); margin: 0;
+    border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
+    aspect-ratio: 1/1; cursor: pointer;
+    transition: transform .25s var(--ease), box-shadow .25s var(--ease);
+  }
+  .item[hidden] { display: none; }
+  .item img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .5s var(--ease); }
+  @media (hover: hover) and (pointer: fine) {
+    .item:hover { transform: translateY(-2px); box-shadow: 0 14px 30px -20px var(--shadow-color); }
+    .item:hover .item__overlay { opacity: 1; }
+    .item:hover img { transform: scale(1.06); }   /* soft zoom on hover */
+  }
+
+  /* STAGGER — cascading reveal on scroll AND replayed on every filter change.
+     The hidden state lives in the animation's from{} + backwards: once played,
+     the tile stays fully visible (no lingering opacity:0 at rest). */
+  @keyframes tiGalleryStagger {
+    from { opacity: 0; transform: translateY(46px) scale(.92); filter: blur(6px); }
+    to { opacity: 1; transform: none; filter: none; }
+  }
+  :global(.wf-js) .item.is-in {
+    animation: tiGalleryStagger .8s var(--easeBack) backwards;
+    animation-delay: var(--d, 0s);
+  }
+
+  .item__overlay {
+    position: absolute; inset: 0; display: flex; align-items: flex-end;
+    padding: 1rem; color: var(--accent-contrast); margin: 0;
+    background: linear-gradient(to top, color-mix(in srgb, var(--bg) 72%, transparent), transparent 60%);
+    opacity: 0; transition: opacity .25s var(--ease);
+  }
+  .item__title { font-size: .95rem; font-weight: 600; }
+  .item__cat {
+    display: block; font-size: .75rem; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--accent-2); font-weight: 600;
+  }
+
+  @media (max-width: 1024px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 780px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } .item { aspect-ratio: 4/3; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .item, .item img, .item__overlay, .tab { transition: none; }
+    /* tiles visible right away: no cascade, no auto zoom — filter still works */
+    :global(.wf-js) .item.is-in { animation: none !important; opacity: 1 !important; transform: none !important; filter: none !important; }
+  }
+</style>
+
+<script>
+  document.documentElement.classList.add("wf-js");
+  document.querySelectorAll<HTMLElement>(".ti-gallery").forEach((section) => {
+    const tabs = Array.from(section.querySelectorAll<HTMLButtonElement>(".tab"));
+    const items = Array.from(section.querySelectorAll<HTMLElement>(".item"));
+    const count = section.querySelector<HTMLElement>(".count");
+    const grid = section.querySelector<HTMLElement>(".grid");
+    if (!grid || !items.length) return;
+
+    const reduce = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+    const STEP = 0.06; // s between two tiles
+
+    /* STAGGER: (re)plays the cascade on the currently visible tiles.
+       Removes .is-in, forces a reflow, recomputes --d per visible index, re-applies. */
+    function playStagger() {
+      if (reduce) { items.forEach((it) => it.classList.add("is-in")); return; }
+      const visible = items.filter((it) => !it.hidden);
+      visible.forEach((it) => { it.classList.remove("is-in"); it.style.removeProperty("--d"); });
+      void grid!.offsetWidth; // reflow: lets the animation replay
+      visible.forEach((it, i) => {
+        it.style.setProperty("--d", (i * STEP).toFixed(2) + "s");
+        it.classList.add("is-in");
+      });
+    }
+
+    /* FILTER — hide/show + counter, then replay the cascade. */
+    function filter(cat: string) {
+      let n = 0;
+      items.forEach((it) => {
+        const show = cat === "all" || it.dataset.cat === cat;
+        it.hidden = !show;
+        if (show) n++;
+      });
+      if (count) count.textContent = n + (n === 1 ? " print" : " prints");
+      playStagger();
+    }
+    tabs.forEach((t) => {
+      t.addEventListener("click", () => {
+        tabs.forEach((x) => x.setAttribute("aria-selected", "false"));
+        t.setAttribute("aria-selected", "true");
+        filter(t.dataset.cat || "all");
+      });
+    });
+
+    /* Initial scroll reveal: triggers the first cascade on entry. */
+    if (reduce || !("IntersectionObserver" in window)) {
+      items.forEach((it) => it.classList.add("is-in"));
+    } else {
+      const io = new IntersectionObserver((entries, obs) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) { playStagger(); obs.disconnect(); }
+        });
+      }, { threshold: 0.12 });
+      io.observe(grid);
+    }
+  });
+</script>

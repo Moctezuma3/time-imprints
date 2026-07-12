@@ -1,0 +1,180 @@
+---
+/**
+ * Integration — section `pieds-de-page_footer-bigtype` (placement: footer slot).
+ * Phase 2 rules applied:
+ *   1. Local :root tokens + reset + Google-Fonts removed → base tokens inherited.
+ *   2. Hard-coded colors → tokens; giant wordmark gradient = brand signature
+ *      pink→cyan (var(--accent) → var(--accent-2)) clip-text.
+ *   3. Root element = <footer> (goes in the Layout "footer" slot, not <main>).
+ *   4. Columns rebuilt from site data: Shop (PRODUCTS), Explore (NAV),
+ *      Follow us (Instagram/TikTok/Threads with real stats).
+ *   5. Reveal pattern kept; hidden state under `:global(.wf-js)` so the scoped
+ *      selector actually matches the class set on <html>; JS scoped to `.ti-footer`.
+ */
+import { PRODUCTS, NAV, SITE } from "../../data/site";
+
+export interface Props {
+  tagline?: string;
+  smallPrint?: string;
+}
+const {
+  tagline = "A moment together, a keepsake forever. DIY paint-imprint kits for your hugs, kisses, hands — and everything in between.",
+  smallPrint = "Kits ship worldwide from Ukraine 🇺🇦 · Free shipping · Secure checkout",
+} = Astro.props;
+
+const follow = [
+  { label: `Instagram — ${SITE.followers} followers`, href: SITE.instagram },
+  { label: `TikTok — ${SITE.tiktokLikes} likes`, href: SITE.tiktok },
+  { label: "Threads", href: SITE.threads },
+];
+---
+
+<footer class="ti-footer">
+  <div class="inner">
+    <div class="top">
+      <div class="lead wf-rev">
+        <p>{tagline}</p>
+        <div class="contact">
+          <a href={SITE.instagram} target="_blank" rel="noopener">{SITE.handle}</a>
+          <a href="/kits/">Shop the kits →</a>
+        </div>
+      </div>
+
+      <div class="col wf-rev" style="--d:.08s">
+        <h3>Shop</h3>
+        <ul>
+          {PRODUCTS.map((p) => (
+            <li><a href={`/kits/${p.slug}/`}>{p.name}</a></li>
+          ))}
+        </ul>
+      </div>
+
+      <div class="col wf-rev" style="--d:.16s">
+        <h3>Explore</h3>
+        <ul>
+          {NAV.map((l) => (
+            <li><a href={l.href}>{l.label}</a></li>
+          ))}
+        </ul>
+      </div>
+
+      <div class="col wf-rev" style="--d:.24s">
+        <h3>Follow us</h3>
+        <ul>
+          {follow.map((s) => (
+            <li><a href={s.href} target="_blank" rel="noopener">{s.label}</a></li>
+          ))}
+        </ul>
+      </div>
+    </div>
+
+    <div class="meta wf-rev" style="--d:.3s">
+      <span>{smallPrint}</span>
+      <span>© 2026 Time Imprints</span>
+      <div class="socials">
+        <a href={SITE.instagram} target="_blank" rel="noopener" aria-label="Instagram">
+          <svg viewBox="0 0 24 24"><path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm5 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm5.5-3a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>
+        </a>
+        <a href={SITE.tiktok} target="_blank" rel="noopener" aria-label="TikTok">
+          <svg viewBox="0 0 24 24"><path d="M16.6 5.82A4.28 4.28 0 0 1 15.54 3h-3.09v12.4a2.59 2.59 0 0 1-2.59 2.5 2.6 2.6 0 0 1-2.6-2.6c0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3c-1.19 0-2.4-.57-3.24-1.48z"/></svg>
+        </a>
+        <a href={SITE.threads} target="_blank" rel="noopener" aria-label="Threads">
+          <span class="at" aria-hidden="true">@</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="bigtype wf-rev" style="--d:.12s" aria-hidden="true">TIME&nbsp;IMPRINTS</div>
+  </div>
+</footer>
+
+<style>
+  .ti-footer {
+    --ease: cubic-bezier(.16, 1, .3, 1);
+    --easeBack: cubic-bezier(.34, 1.56, .64, 1);
+    background: var(--bg); color: var(--fg);
+    border-top: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .ti-footer a { text-decoration: none; color: inherit; }
+  .ti-footer ul { list-style: none; margin: 0; padding: 0; }
+  .ti-footer svg { display: block; fill: currentColor; }
+  .inner { max-width: var(--container); margin: 0 auto; padding: clamp(2.6rem, 5vw, 3.6rem) var(--gutter) 0; }
+
+  /* REVEAL — cascading columns (hidden state only under html.wf-js) */
+  :global(.wf-js) .wf-rev { opacity: 0; transform: translateY(24px);
+    transition: opacity .7s var(--ease), transform .8s var(--easeBack); transition-delay: var(--d, 0s); }
+  :global(.wf-js) .wf-rev.is-in { opacity: 1; transform: none; }
+
+  /* Top row: lead + 3 columns */
+  .top { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 2rem;
+    padding-bottom: clamp(2rem, 5vw, 3rem); border-bottom: 1px solid var(--line); }
+  .lead { max-width: 30ch; }
+  .lead p { color: var(--muted); font-size: 1rem; line-height: 1.6; }
+  .lead .contact { margin-top: 1.1rem; display: flex; flex-direction: column; gap: .3rem; }
+  .lead .contact a { font-weight: 600; color: color-mix(in srgb, var(--fg) 82%, var(--muted)); transition: color .2s; }
+  .col h3 { font-size: .76rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: .9rem; }
+  .col ul { display: flex; flex-direction: column; gap: .55rem; }
+  .col a { color: color-mix(in srgb, var(--fg) 82%, var(--muted)); font-size: .95rem; transition: color .2s; }
+
+  /* Meta row: small print + socials */
+  .meta { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+    padding: 1.2rem 0; font-size: .84rem; color: var(--muted); }
+  .socials { display: flex; gap: .6rem; }
+  .socials a { width: 2rem; height: 2rem; border: 1px solid var(--line); border-radius: .5rem;
+    display: grid; place-items: center; color: color-mix(in srgb, var(--fg) 82%, var(--muted));
+    transition: background .2s, color .2s, border-color .2s; }
+  .socials svg { width: 1rem; height: 1rem; }
+  .socials .at { font-size: 1rem; font-weight: 800; line-height: 1; }
+
+  /* Giant signature wordmark — pink→cyan clip-text */
+  .bigtype {
+    font-size: clamp(2.6rem, 11vw, 10rem); font-weight: 900; letter-spacing: -.045em;
+    line-height: .82; margin: .4rem 0 -.14em; white-space: nowrap; text-align: center;
+    background: linear-gradient(95deg, var(--accent) 12%, var(--accent-2) 88%);
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent; -webkit-text-fill-color: transparent; user-select: none;
+  }
+  /* Soft wordmark reveal — preserves the clip-text gradient */
+  :global(.wf-js) .bigtype.wf-rev { opacity: 0; transform: translateY(28px);
+    transition: opacity .9s var(--ease), transform 1s var(--ease); transition-delay: var(--d, 0s); }
+  :global(.wf-js) .bigtype.wf-rev.is-in { opacity: 1; transform: none; }
+
+  @media (hover: hover) and (pointer: fine) {
+    .col a:hover, .lead .contact a:hover { color: var(--fg); }
+    .socials a:hover { background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: var(--accent-contrast); border-color: transparent; }
+  }
+
+  @media (max-width: 760px) {
+    .top { grid-template-columns: 1fr 1fr; }
+    .lead { grid-column: 1 / -1; }
+    .meta { justify-content: flex-start; }
+  }
+  @media (max-width: 440px) { .top { grid-template-columns: 1fr; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(.wf-js) .wf-rev, :global(.wf-js) .bigtype.wf-rev {
+      opacity: 1 !important; transform: none !important; transition: none;
+    }
+  }
+</style>
+
+<script>
+  document.documentElement.classList.add("wf-js");
+  (function () {
+    const els: Element[] = Array.from(document.querySelectorAll(".ti-footer .wf-rev"));
+    if (!els.length) return;
+    if (!("IntersectionObserver" in window) || window.matchMedia("(prefers-reduced-motion:reduce)").matches) {
+      els.forEach((el) => el.classList.add("is-in"));
+      return;
+    }
+    const io = new IntersectionObserver((entries, obs) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) { e.target.classList.add("is-in"); obs.unobserve(e.target); }
+      });
+    }, { threshold: 0.12 });
+    els.forEach((el) => io.observe(el));
+  })();
+</script>
