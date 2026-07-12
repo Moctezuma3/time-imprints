@@ -1,0 +1,19 @@
+/* theme.css — Time Imprints brand tokens (overrides the Layout's neutral defaults).
+   Palette pulled from the official logo: hot pink + cyan drips on black. */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+
+/* :root:root — beats the Layout's :root defaults regardless of injection order (dev vs build). */
+:root:root {
+  --bg: #0b0a0e;            /* near-black, like the logo background */
+  --surface: #14121b;       /* raised panels */
+  --fg: #f7f5fa;            /* off-white text */
+  --muted: #a29daf;         /* secondary text */
+  --line: #272433;          /* hairlines */
+  --accent: #e82f95;        /* logo pink (IMPRINTS) — primary CTA */
+  --accent-contrast: #ffffff;
+  --accent-2: #3fc3e8;      /* logo cyan (TIME) — secondary accent */
+  --radius: 16px;
+  --font: "Outfit", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-heading: "Outfit", system-ui, sans-serif;
+  --shadow-color: rgba(0, 0, 0, 0.55);
+}
