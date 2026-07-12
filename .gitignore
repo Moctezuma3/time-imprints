@@ -5,3 +5,6 @@ dist/
 
 # nested library copy (not part of the site build)
 02_BIBLIOTHEQUE/
+
+# gh-pages staging output
+publish/
